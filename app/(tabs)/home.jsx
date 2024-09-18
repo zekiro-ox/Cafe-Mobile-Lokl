@@ -22,6 +22,7 @@ import {
   Montserrat_700Bold,
 } from "@expo-google-fonts/montserrat";
 import { FontAwesome6 } from "@expo/vector-icons";
+import { Feather } from "@expo/vector-icons";
 
 const products = [
   // Updated Coffee Products
@@ -406,12 +407,28 @@ const Home = () => {
       </View>
       <Modal visible={isChatboxModalVisible} animationType="slide">
         <View style={styles.chatboxModalContainer}>
-          <Text style={styles.chatboxModalTitle}>Chat with AI</Text>
-          <TextInput
-            style={styles.chatboxModalInput}
-            placeholder="Type your message here..."
-          />
-          <Button title="Send" onPress={() => setChatboxModalVisible(false)} />
+          <View style={styles.chatboxModalHeader}>
+            <Text style={styles.chatboxModalTitle}>Chat with KOPIKPIK</Text>
+            <TouchableOpacity
+              style={styles.chatboxModalCloseButton}
+              onPress={() => setChatboxModalVisible(false)}
+            >
+              <Feather name="minimize-2" size={24} color="#333" />
+            </TouchableOpacity>
+          </View>
+          <View style={styles.chatboxModalInputContainer}>
+            <TextInput
+              style={styles.chatboxModalInput}
+              placeholder="Type something..."
+            />
+            <TouchableOpacity style={styles.chatboxModalSendButton}>
+              <Icon
+                name="send"
+                size={20}
+                style={styles.chatboxModalSendButtonText}
+              ></Icon>
+            </TouchableOpacity>
+          </View>
         </View>
       </Modal>
     </SafeAreaView>
@@ -515,30 +532,63 @@ const styles = StyleSheet.create({
   },
   chatboxModalContainer: {
     flex: 1,
-    justifyContent: "center",
+    flexDirection: "column",
+    justifyContent: "space-between",
     alignItems: "center",
-    backgroundColor: "#fff",
+    backgroundColor: "#cfc1b1",
     borderRadius: 10,
     padding: 20,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.5,
     shadowRadius: 10,
-    elevation: 4, // use elevation for Android
+    elevation: 4,
+  },
+  chatboxModalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    width: "100%",
+    marginBottom: 20,
   },
   chatboxModalTitle: {
     fontSize: 20,
     fontWeight: "bold",
     color: "#333",
-    marginBottom: 20,
+    fontFamily: "Montserrat_700Bold",
+  },
+  chatboxModalCloseButton: {
+    padding: 10,
+  },
+  chatboxModalInputContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 10,
+    paddingVertical: 20, // Add this
   },
   chatboxModalInput: {
+    flex: 1,
     borderWidth: 1,
     borderColor: "#ccc",
-    borderRadius: 5,
-    padding: 10,
-    width: "100%",
-    marginBottom: 20,
+    borderRadius: 20,
+    backgroundColor: "#e5dcd3",
+    paddingHorizontal: 10,
+    paddingVertical: 12,
+    marginRight: 10,
+    fontSize: 16,
+    fontFamily: "Montserrat_400Regular",
+  },
+  chatboxModalSendButton: {
+    backgroundColor: "#4f3830",
+    borderRadius: 20,
+    padding: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  chatboxModalSendButtonText: {
+    color: "#fff",
+    fontWeight: "bold",
   },
 });
 
