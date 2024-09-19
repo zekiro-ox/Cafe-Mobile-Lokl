@@ -8,7 +8,7 @@ import {
   TouchableOpacity,
   Modal,
   TextInput,
-  Button,
+  ScrollView,
 } from "react-native";
 import React, { useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -23,6 +23,7 @@ import {
 } from "@expo-google-fonts/montserrat";
 import { FontAwesome6 } from "@expo/vector-icons";
 import { Feather } from "@expo/vector-icons";
+import AIProfileIcon from "../../assets/logo.png"; // Replace with your AI profile icon path
 
 const products = [
   // Updated Coffee Products
@@ -321,9 +322,123 @@ const Home = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [cartItems, setCartItems] = useState([]);
   const [isChatboxModalVisible, setChatboxModalVisible] = useState(false);
+  const [messages, setMessages] = useState([]); // State to store messages
+  const [inputMessage, setInputMessage] = useState(""); // State to hold input message
+  const messagesRef = React.useRef();
+  const initialAIResponse = "Hello! How can I assist you today?";
+  const preBuiltQuestions = [
+    {
+      question: "What are the lactose-free or non-dairy alternative milk?",
+      answer:
+        "Almond Milk: A smooth and creamy vanilla latte made with almond milk, perfect for those who are lactose intolerant. Soy Milk: soy milk for a slightly nutty and rich flavor.",
+    },
+    {
+      question: "How strong do I need to make the Americano stronger?",
+      answer:
+        "Double shots for a stronger kick: Add double shots of espresso to make the Americano stronger and more intense.",
+    },
+    {
+      question: "What are the best sellers?",
+      answer:
+        "Salted Caramel, Java Chips, Matcha Latte, Strawberry Milk, Dirty Horchata, Honey Citron Ade.",
+    },
+    {
+      question:
+        "For someone who has diabetes, wants to reduce weight, and doesn't like high sugar, what sugar level would you recommend?",
+      answer: "15% level.",
+    },
+    {
+      question: "Low Sugar options?",
+      answer:
+        "Iced Americano with a Splash of Almond Milk: A strong coffee flavor with a hint of creaminess, customized to 15% sugar. Hot Cappuccino with Cinnamon: A classic cappuccino with a sprinkle of cinnamon for added flavor, customized to 15% sugar.",
+    },
+    {
+      question: "Which coffee would you recommend to someone who is acidic?",
+      answer:
+        "Vanilla latte is recommended for its milder and smoother taste, which is gentler on the stomach.",
+    },
+    // New Questions and Answers
+    {
+      question:
+        "What would you recommend for someone who enjoys a strong coffee flavor?",
+      answer:
+        "Lokl Signature with Extra Double Shot: An intense coffee experience, ideal for those who love strong coffee.",
+    },
+    {
+      question: "Can you suggest a coffee option that's not too sweet?",
+      answer:
+        "Iced Latte with Half Sweetener: A refreshing and less sweetened iced latte. Hot Americano with a Hint of Caramel Syrup: Just a touch of sweetness without overpowering the coffee flavor.",
+    },
+    {
+      question:
+        "I'm looking for a unique coffee experience. Any recommendations?",
+      answer:
+        "Mocha with Dark Chocolate: A rich and indulgent mocha, customized with extra dark chocolate shavings for an enhanced chocolate flavor.",
+    },
+    {
+      question:
+        "Which coffee would you recommend if I prefer something with a rich chocolate flavor?",
+      answer: "Mocha, Java Chip.",
+    },
+    {
+      question:
+        "I'm not sure which milk alternative would go best with my cappuccino. Any suggestions?",
+      answer: "Almond Milk or Soy Milk.",
+    },
+    {
+      question:
+        "Can you recommend a coffee that's both creamy and not too sweet?",
+      answer: "Cappuccino.",
+    },
+  ];
+
+  const handleSendMessage = () => {
+    if (inputMessage.trim()) {
+      setMessages((prevMessages) => [
+        ...prevMessages,
+        { text: inputMessage, sentByUser: true },
+      ]);
+
+      // Clear input field
+      setInputMessage("");
+
+      // Simulate AI response with a delay
+      setTimeout(() => {
+        // Here you can generate an AI response or just return a default message
+        const aiResponse = "Tanong mo kay Badaran baka alam nya"; // Replace with actual AI logic.
+        setMessages((prevMessages) => [
+          ...prevMessages,
+          { text: aiResponse, sentByUser: false },
+        ]);
+      }, 1000); // Delay in milliseconds (1000 ms = 1 second)
+
+      // Scroll to last message
+      messagesRef.current.scrollToEnd({ animated: true });
+    }
+  };
+
+  const handleSendPreBuiltAnswer = (question, answer) => {
+    setMessages((prevMessages) => [
+      ...prevMessages,
+      { text: question, sentByUser: true },
+    ]);
+
+    // Simulate AI response with a delay
+    setTimeout(() => {
+      setMessages((prevMessages) => [
+        ...prevMessages,
+        { text: answer, sentByUser: false },
+      ]);
+    }, 1000); // Delay in milliseconds (1000 ms = 1 second)
+
+    messagesRef.current.scrollToEnd({ animated: true });
+  };
 
   const handleAIIconClick = () => {
     setChatboxModalVisible(!isChatboxModalVisible);
+    if (!isChatboxModalVisible) {
+      setMessages([{ text: initialAIResponse, sentByUser: false }]); // Set initial AI message
+    }
   };
 
   const handleCategorySelect = (category) => {
@@ -377,6 +492,53 @@ const Home = () => {
   if (!fontsLoaded) {
     return null; // You can return a loading indicator here if needed
   }
+  const renderMessage = ({ item: item1 }) => (
+    <View
+      style={{
+        flexDirection: "row",
+        alignItems: "flex-end",
+        justifyContent: item1.sentByUser ? "flex-end" : "flex-start",
+        marginVertical: 5,
+      }}
+    >
+      {/* Only render the AI Profile Icon for AI's messages */}
+      {!item1.sentByUser && (
+        <Image
+          source={AIProfileIcon}
+          style={{
+            width: 25,
+            height: 25,
+            borderRadius: 15,
+            marginRight: 10, // For AI's messages
+            marginBottom: 5,
+          }}
+        />
+      )}
+
+      {/* Message Bubble */}
+      <View
+        style={[
+          styles.messageBubble,
+          {
+            alignSelf: item1.sentByUser ? "flex-end" : "flex-start",
+            backgroundColor: item1.sentByUser ? "#4f3830" : "#e5dcd3",
+          },
+        ]}
+      >
+        <Text
+          style={[
+            styles.messageText,
+            {
+              color: item1.sentByUser ? "#fff" : "#333",
+              fontFamily: "Montserrat_400Regular",
+            },
+          ]}
+        >
+          {item1.text}
+        </Text>
+      </View>
+    </View>
+  );
 
   return (
     <SafeAreaView style={{ backgroundColor: "#cfc1b1" }} className="flex-1">
@@ -408,7 +570,7 @@ const Home = () => {
       <Modal visible={isChatboxModalVisible} animationType="slide">
         <View style={styles.chatboxModalContainer}>
           <View style={styles.chatboxModalHeader}>
-            <Text style={styles.chatboxModalTitle}>Chat with KOPIKPIK</Text>
+            <Text style={styles.chatboxModalTitle}>Ask LokAI</Text>
             <TouchableOpacity
               style={styles.chatboxModalCloseButton}
               onPress={() => setChatboxModalVisible(false)}
@@ -416,17 +578,47 @@ const Home = () => {
               <Feather name="minimize-2" size={24} color="#333" />
             </TouchableOpacity>
           </View>
+          <FlatList
+            ref={messagesRef}
+            data={messages}
+            keyExtractor={(item1, index) => index.toString()}
+            renderItem={renderMessage}
+            contentContainerStyle={styles.messageList}
+            style={{ flex: 1 }} // Ensure it grows to fill the available height
+          />
+
+          <View style={styles.preBuiltQuestionsContainer}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              {preBuiltQuestions.map((item, index) => (
+                <TouchableOpacity
+                  key={index}
+                  onPress={() =>
+                    handleSendPreBuiltAnswer(item.question, item.answer)
+                  }
+                  style={styles.preBuiltQuestionButton} // Apply a style for the button
+                >
+                  <Text style={styles.preBuiltQuestion}>{item.question}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+
           <View style={styles.chatboxModalInputContainer}>
             <TextInput
               style={styles.chatboxModalInput}
               placeholder="Type something..."
+              value={inputMessage}
+              onChangeText={setInputMessage}
             />
-            <TouchableOpacity style={styles.chatboxModalSendButton}>
+            <TouchableOpacity
+              style={styles.chatboxModalSendButton}
+              onPress={handleSendMessage}
+            >
               <Icon
                 name="send"
                 size={20}
                 style={styles.chatboxModalSendButtonText}
-              ></Icon>
+              />
             </TouchableOpacity>
           </View>
         </View>
@@ -532,17 +724,15 @@ const styles = StyleSheet.create({
   },
   chatboxModalContainer: {
     flex: 1,
-    flexDirection: "column",
     justifyContent: "space-between",
-    alignItems: "center",
     backgroundColor: "#cfc1b1",
-    borderRadius: 10,
     padding: 20,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.5,
-    shadowRadius: 10,
-    elevation: 4,
+  },
+
+  messageList: {
+    // Ensure it takes full width and use flex to grow
+    flexGrow: 1, // This allows the FlatList to expand properly
+    paddingBottom: 10, // Optional for some breathing space
   },
   chatboxModalHeader: {
     flexDirection: "row",
@@ -590,6 +780,45 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontWeight: "bold",
   },
+  messageBubble: {
+    backgroundColor: "#4f3830", // Bubble color
+    borderRadius: 15,
+    padding: 10, // Adjusted padding for a better look
+    marginVertical: 5,
+    maxWidth: "80%", // Change to 80% to allow wrapping
+    alignSelf: "flex-end", // To align to the right for user messages
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 3,
+    fontFamily: "Montserrat_400Regular", // Elevation for Android shadow
+  },
+  messageText: {
+    color: "#fff",
+    fontSize: 16,
+  },
+
+  preBuiltQuestionsContainer: {
+    paddingVertical: 5, // Smaller vertical padding
+  },
+  preBuiltQuestion: {
+    backgroundColor: "#e5dcd3",
+    padding: 5, // Smaller padding
+    borderRadius: 20, // Increased border radius for rounder borders
+    marginVertical: 3, // Smaller vertical margin
+    fontSize: 14,
+    fontFamily: "Montserrat_400Regular", // Smaller font size
+  },
+
+  preBuiltQuestionButton: {
+    backgroundColor: "#e5dcd3",
+    padding: 2, // This can remain the same or be adjusted further
+    borderRadius: 20, // Increased border radius for rounder borders
+    marginRight: 5, // Smaller space between items
+  },
+
+  // Other styles...
 });
 
 export default Home;
