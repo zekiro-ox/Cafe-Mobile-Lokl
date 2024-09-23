@@ -1,0 +1,316 @@
+import React from "react";
+import {
+  View,
+  Modal,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  Image,
+  Dimensions,
+  StatusBar,
+  ScrollView,
+  SafeAreaView,
+} from "react-native";
+import { useFonts } from "expo-font";
+import {
+  Montserrat_400Regular,
+  Montserrat_700Bold,
+} from "@expo-google-fonts/montserrat";
+
+const { height: screenHeight } = Dimensions.get("window");
+
+const CustomizationModal = ({ visible, onClose, onAddToCart, product }) => {
+  const productName = product.name || "Product"; // Default to "Product" if name is not defined
+  const productDescription = product.description || "No description available"; // Default if description is not defined
+  const productPrice = product.price || "Price not available"; // Default if price is not defined
+
+  const [fontsLoaded] = useFonts({
+    Montserrat_400Regular,
+    Montserrat_700Bold,
+  });
+
+  // Define options for all customizations
+  const milkOptions = [
+    { label: "Whole Milk", value: "whole" },
+    { label: "Skim Milk", value: "skim" },
+    { label: "Almond Milk", value: "almond" },
+    { label: "Soy Milk", value: "soy" },
+  ];
+
+  const addOnOptions = [
+    { label: "Extra Shot", value: "extra_shot" },
+    { label: "Whipped Cream", value: "whipped_cream" },
+    { label: "Chocolate Drizzle", value: "chocolate_drizzle" },
+  ];
+
+  const sugarLevels = [
+    { label: "No Sugar", value: "none" },
+    { label: "Regular Sugar", value: "regular" },
+    { label: "Less Sugar", value: "less" },
+  ];
+
+  // State to keep track of selected options
+  const [selectedMilk, setSelectedMilk] = React.useState(milkOptions[0].value);
+  const [selectedAddOns, setSelectedAddOns] = React.useState(
+    addOnOptions.reduce((acc, option) => {
+      acc[option.value] = 0; // Initialize count to 0 for each add-on
+      return acc;
+    }, {})
+  );
+  const [selectedSugar, setSelectedSugar] = React.useState(
+    sugarLevels[0].value
+  );
+
+  const handleAddToCart = () => {
+    onAddToCart({
+      ...product,
+      milkType: selectedMilk,
+      addOns: selectedAddOns,
+      sugarLevel: selectedSugar,
+    });
+    onClose(); // Close the modal after adding to cart
+  };
+
+  // Function to handle incrementing and decrementing add-on counts
+  const updateAddOnCount = (value, increment) => {
+    setSelectedAddOns((prev) => {
+      const newCount = prev[value] + increment;
+      return { ...prev, [value]: newCount < 0 ? 0 : newCount }; // Prevent count from going below 0
+    });
+  };
+
+  // Unified function for rendering option sections
+  const renderOptionSection = (
+    title,
+    options,
+    handleSelection,
+    selectedValue
+  ) => (
+    <View style={[styles.optionContainer, styles.shadowStyle]}>
+      <Text style={styles.optionTitle}>{title}</Text>
+      {title === "Add Ons"
+        ? options.map((option) => (
+            <View key={option.value} style={styles.addOnContainer}>
+              <Text style={styles.radioButtonText}>{option.label}</Text>
+              <View style={styles.addOnControls}>
+                <TouchableOpacity
+                  onPress={() => updateAddOnCount(option.value, -1)}
+                >
+                  <Text style={styles.controlButton}>-</Text>
+                </TouchableOpacity>
+                <Text style={styles.addOnCountText}>
+                  {selectedAddOns[option.value]}
+                </Text>
+                <TouchableOpacity
+                  onPress={() => updateAddOnCount(option.value, 1)}
+                >
+                  <Text style={styles.controlButton}>+</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          ))
+        : options.map((option) => (
+            <TouchableOpacity
+              key={option.value}
+              style={styles.radioButtonContainer}
+              onPress={() => handleSelection(option.value)}
+            >
+              <Text style={styles.radioButtonText}>{option.label}</Text>
+              {title !== "Add Ons" && (
+                <View
+                  style={[
+                    styles.radioButton,
+                    selectedValue === option.value &&
+                      styles.selectedRadioButton,
+                  ]}
+                />
+              )}
+            </TouchableOpacity>
+          ))}
+    </View>
+  );
+
+  return (
+    <Modal visible={visible} animationType="slide">
+      <SafeAreaView style={styles.container}>
+        <StatusBar translucent backgroundColor="transparent" />
+        <ScrollView contentContainerStyle={styles.scrollContainer}>
+          {product.image && (
+            <Image
+              source={product.image}
+              style={styles.productImage}
+              resizeMode="cover"
+            />
+          )}
+
+          {/* Updated Title Section */}
+          <View style={styles.titleContainer}>
+            <Text style={styles.title}>{productName}</Text>
+            <Text style={styles.price}>{productPrice}</Text>
+          </View>
+
+          {/* Description Below the Title */}
+          <Text style={styles.description}>{productDescription}</Text>
+
+          {/* Render sections */}
+          {renderOptionSection(
+            "Milk Option",
+            milkOptions,
+            setSelectedMilk,
+            selectedMilk
+          )}
+          {renderOptionSection("Add Ons", addOnOptions, null, selectedAddOns)}
+          {renderOptionSection(
+            "Sugar Level",
+            sugarLevels,
+            setSelectedSugar,
+            selectedSugar
+          )}
+
+          <View style={styles.buttonContainer}>
+            <TouchableOpacity style={styles.button} onPress={handleAddToCart}>
+              <Text style={styles.buttonText}>Add to Cart</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.button} onPress={onClose}>
+              <Text style={styles.buttonText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </SafeAreaView>
+    </Modal>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    justifyContent: "flex-start",
+    backgroundColor: "#cfc1b1",
+  },
+  productImage: {
+    width: "100%",
+    height: screenHeight * 0.35,
+    marginBottom: 20,
+    borderRadius: 20,
+  },
+  scrollContainer: {
+    flexGrow: 1,
+    justifyContent: "flex-start",
+    padding: 20,
+  },
+  titleContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center", // Center items vertically
+    marginBottom: 10,
+    flex: 1, // Use flex to allow items to expand equally
+  },
+  title: {
+    fontSize: 22,
+    marginBottom: 0, // Remove marginBottom to align better
+    textAlign: "left", // Align text to the left
+    fontFamily: "Montserrat_700Bold",
+    flex: 1, // Allow title to take available space
+  },
+  price: {
+    fontSize: 18,
+    fontFamily: "Montserrat_700Bold",
+    color: "#4f3830", // Adjust as needed
+    textAlign: "right", // Align text to the right
+    flex: 1, // Allow price to take available space
+  },
+  description: {
+    fontSize: 14,
+    fontFamily: "Montserrat_400Regular",
+    textAlign: "center",
+    marginBottom: 20,
+  },
+  radioButtonContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginVertical: 10,
+  },
+  addOnContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginVertical: 10,
+  },
+  addOnControls: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  addOnCountText: {
+    marginHorizontal: 10,
+    fontSize: 16,
+    fontFamily: "Montserrat_400Regular",
+  },
+  controlButton: {
+    fontSize: 20,
+    width: 30,
+    textAlign: "center",
+    color: "#4f3830",
+  },
+  radioButton: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: "#4f3830",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 10,
+  },
+  selectedRadioButton: {
+    backgroundColor: "#4f3830",
+  },
+  radioButtonText: {
+    fontSize: 16,
+    fontFamily: "Montserrat_400Regular",
+    flex: 1,
+    marginRight: 10,
+  },
+  buttonContainer: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+  },
+  button: {
+    padding: 15,
+    backgroundColor: "#4f3830",
+    borderRadius: 8,
+    flex: 1,
+    marginHorizontal: 10,
+  },
+  buttonText: {
+    color: "#fff",
+    textAlign: "center",
+    fontFamily: "Montserrat_400Regular",
+  },
+
+  shadowStyle: {
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5, // For Android
+  },
+  optionContainer: {
+    marginVertical: 10,
+    borderRadius: 15, // Optional: for rounded corners
+    backgroundColor: "#fff",
+    padding: 20,
+    backgroundColor: "#e5dcd3", // Optional: to ensure a background to see the shadow
+  },
+  optionTitle: {
+    fontSize: 18,
+    marginBottom: 10,
+    textAlign: "center",
+    fontFamily: "Montserrat_700Bold",
+  },
+});
+
+export default CustomizationModal;

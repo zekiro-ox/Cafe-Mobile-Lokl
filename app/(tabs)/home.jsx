@@ -14,6 +14,8 @@ import React, { useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 import DrinkMenu from "../component/DrinkMenu";
 import SearchBar from "../component/SearchBar";
+import CustomizationModal from "../component/CustomizationModal";
+
 import Icon from "react-native-vector-icons/FontAwesome";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { useFonts } from "expo-font";
@@ -32,7 +34,7 @@ const products = [
     name: "Latte",
     price: "$4.50",
     description: "Smooth and creamy espresso with steamed milk.",
-    image: require("../../assets/Rus.jpg"),
+    image: require("../../assets/Kape.jpg"),
     rating: 4,
     category: "Hot Drinks",
   },
@@ -41,7 +43,7 @@ const products = [
     name: "Cappuccino",
     price: "$5.00",
     description: "Espresso topped with a layer of frothy milk.",
-    image: require("../../assets/Rus.jpg"),
+    image: require("../../assets/Kape.jpg"),
     rating: 5,
     category: "Hot Drinks",
   },
@@ -50,7 +52,7 @@ const products = [
     name: "Espresso",
     price: "$3.00",
     description: "Strong and bold coffee brewed under pressure.",
-    image: require("../../assets/Rus.jpg"),
+    image: require("../../assets/Kape.jpg"),
     rating: 3,
     category: "Hot Drinks",
   },
@@ -59,7 +61,7 @@ const products = [
     name: "Mocha",
     price: "$5.50",
     description: "Rich chocolate and espresso combined with steamed milk.",
-    image: require("../../assets/Rus.jpg"),
+    image: require("../../assets/Kape.jpg"),
     rating: 4,
     category: "Hot Drinks",
   },
@@ -68,7 +70,7 @@ const products = [
     name: "Green Tea",
     price: "$4.00",
     description: "Light and refreshing green tea with a hint of sweetness.",
-    image: require("../../assets/Rus.jpg"),
+    image: require("../../assets/Kape.jpg"),
     rating: 4,
     category: "Tea",
   },
@@ -77,7 +79,7 @@ const products = [
     name: "Black Coffee",
     price: "$2.50",
     description: "Simple and bold brewed coffee.",
-    image: require("../../assets/Rus.jpg"),
+    image: require("../../assets/Kape.jpg"),
     rating: 3,
     category: "Hot Drinks",
   },
@@ -86,7 +88,7 @@ const products = [
     name: "Iced Coffee",
     price: "$4.00",
     description: "Chilled coffee served over ice for a refreshing drink.",
-    image: require("../../assets/Rus.jpg"),
+    image: require("../../assets/Kape.jpg"),
     rating: 4,
     category: "Ice Blended",
   },
@@ -95,7 +97,7 @@ const products = [
     name: "Caramel Macchiato",
     price: "$5.50",
     description: "Espresso with caramel syrup and steamed milk.",
-    image: require("../../assets/Rus.jpg"),
+    image: require("../../assets/Kape.jpg"),
     rating: 5,
     category: "Hot Drinks",
   },
@@ -104,7 +106,7 @@ const products = [
     name: "Chai Latte",
     price: "$4.75",
     description: "Spiced tea with steamed milk and a touch of sweetness.",
-    image: require("../../assets/Rus.jpg"),
+    image: require("../../assets/Kape.jpg"),
     rating: 4,
     category: "Tea",
   },
@@ -113,7 +115,7 @@ const products = [
     name: "Affogato",
     price: "$6.00",
     description: "Vanilla ice cream topped with a shot of hot espresso.",
-    image: require("../../assets/Rus.jpg"),
+    image: require("../../assets/Kape.jpg"),
     rating: 5,
     category: "Hot Drinks",
   },
@@ -124,7 +126,7 @@ const products = [
     name: "Strawberry Banana Smoothie",
     price: "$5.00",
     description: "A blend of strawberries, bananas, and yogurt.",
-    image: require("../../assets/Rus.jpg"),
+    image: require("../../assets/Kape.jpg"),
     rating: 4,
     category: "Ice Blended",
   },
@@ -133,7 +135,7 @@ const products = [
     name: "Mango Smoothie",
     price: "$5.50",
     description: "Creamy mango smoothie with a touch of honey.",
-    image: require("../../assets/Rus.jpg"),
+    image: require("../../assets/Kape.jpg"),
     rating: 5,
     category: "Ice Blended",
   },
@@ -142,7 +144,7 @@ const products = [
     name: "Berry Blast Smoothie",
     price: "$5.75",
     description: "A fruity mix of blueberries, raspberries, and strawberries.",
-    image: require("../../assets/Rus.jpg"),
+    image: require("../../assets/Kape.jpg"),
     rating: 4,
     category: "Ice Blended",
   },
@@ -151,7 +153,7 @@ const products = [
     name: "Green Smoothie",
     price: "$6.00",
     description: "A healthy blend of spinach, kale, and apple.",
-    image: require("../../assets/Rus.jpg"),
+    image: require("../../assets/Kape.jpg"),
     rating: 5,
     category: "Ice Blended",
   },
@@ -162,7 +164,7 @@ const products = [
     name: "Orange Juice",
     price: "$3.50",
     description: "Freshly squeezed orange juice.",
-    image: require("../../assets/Rus.jpg"),
+    image: require("../../assets/Kape.jpg"),
     rating: 4,
     category: "Juices",
   },
@@ -171,7 +173,7 @@ const products = [
     name: "Apple Juice",
     price: "$3.50",
     description: "Sweet and refreshing apple juice.",
-    image: require("../../assets/Rus.jpg"),
+    image: require("../../assets/Kape.jpg"),
     rating: 4,
     category: "Juices",
   },
@@ -180,7 +182,7 @@ const products = [
     name: "Carrot Juice",
     price: "$4.00",
     description: "Nutritious carrot juice with a hint of ginger.",
-    image: require("../../assets/Rus.jpg"),
+    image: require("../../assets/Kape.jpg"),
     rating: 5,
     category: "Juices",
   },
@@ -189,7 +191,7 @@ const products = [
     name: "Pineapple Juice",
     price: "$4.00",
     description: "Tropical pineapple juice with a sweet flavor.",
-    image: require("../../assets/Rus.jpg"),
+    image: require("../../assets/Kape.jpg"),
     rating: 4,
     category: "Juices",
   },
@@ -200,7 +202,7 @@ const products = [
     name: "Cola",
     price: "$2.00",
     description: "Classic cola with a fizzy kick.",
-    image: require("../../assets/Rus.jpg"),
+    image: require("../../assets/Kape.jpg"),
     rating: 3,
     category: "Soda",
   },
@@ -209,7 +211,7 @@ const products = [
     name: "Lemonade",
     price: "$2.50",
     description: "Refreshing lemonade with a zesty twist.",
-    image: require("../../assets/Rus.jpg"),
+    image: require("../../assets/Kape.jpg"),
     rating: 4,
     category: "Soda",
   },
@@ -218,7 +220,7 @@ const products = [
     name: "Root Beer",
     price: "$2.50",
     description: "Smooth and creamy root beer.",
-    image: require("../../assets/Rus.jpg"),
+    image: require("../../assets/Kape.jpg"),
     rating: 4,
     category: "Soda",
   },
@@ -227,7 +229,7 @@ const products = [
     name: "Ginger Ale",
     price: "$2.75",
     description: "Spicy and refreshing ginger ale.",
-    image: require("../../assets/Rus.jpg"),
+    image: require("../../assets/Kape.jpg"),
     rating: 5,
     category: "Soda",
   },
@@ -238,7 +240,7 @@ const products = [
     name: "Virgin Mojito",
     price: "$4.50",
     description: "A refreshing blend of mint, lime, and soda water.",
-    image: require("../../assets/Rus.jpg"),
+    image: require("../../assets/Kape.jpg"),
     rating: 4,
     category: "Mocktails",
   },
@@ -247,7 +249,7 @@ const products = [
     name: "Fruit Punch",
     price: "$4.75",
     description: "A mix of tropical fruit juices with a hint of grenadine.",
-    image: require("../../assets/Rus.jpg"),
+    image: require("../../assets/Kape.jpg"),
     rating: 5,
     category: "Mocktails",
   },
@@ -257,7 +259,7 @@ const products = [
     price: "$4.00",
     description:
       "A classic mix of ginger ale, grenadine, and a splash of lime.",
-    image: require("../../assets/Rus.jpg"),
+    image: require("../../assets/Kape.jpg"),
     rating: 4,
     category: "Mocktails",
   },
@@ -266,7 +268,7 @@ const products = [
     name: "Nojito",
     price: "$4.50",
     description: "A non-alcoholic mojito with mint, lime, and soda water.",
-    image: require("../../assets/Rus.jpg"),
+    image: require("../../assets/Kape.jpg"),
     rating: 4,
     category: "Mocktails",
   },
@@ -277,7 +279,7 @@ const products = [
     name: "Hot Chocolate",
     price: "$4.00",
     description: "Rich and creamy hot chocolate topped with whipped cream.",
-    image: require("../../assets/Rus.jpg"),
+    image: require("../../assets/Kape.jpg"),
     rating: 4,
     category: "Non-Coffee",
   },
@@ -286,7 +288,7 @@ const products = [
     name: "Vanilla Milkshake",
     price: "$5.00",
     description: "Smooth and creamy vanilla milkshake with whipped cream.",
-    image: require("../../assets/Rus.jpg"),
+    image: require("../../assets/Kape.jpg"),
     rating: 5,
     category: "Non-Coffee",
   },
@@ -295,7 +297,7 @@ const products = [
     name: "Strawberry Milkshake",
     price: "$5.25",
     description: "A delicious milkshake made with fresh strawberries.",
-    image: require("../../assets/Rus.jpg"),
+    image: require("../../assets/Kape.jpg"),
     rating: 4,
     category: "Non-Coffee",
   },
@@ -304,7 +306,7 @@ const products = [
     name: "Chocolate Milkshake",
     price: "$5.50",
     description: "Indulgent chocolate milkshake with a rich chocolate flavor.",
-    image: require("../../assets/Rus.jpg"),
+    image: require("../../assets/Kape.jpg"),
     rating: 5,
     category: "Non-Coffee",
   },
@@ -392,8 +394,22 @@ const Home = () => {
     },
   ];
 
+  const [isCustomizationModalVisible, setCustomizationModalVisible] =
+    useState(false);
+  const [selectedProduct, setSelectedProduct] = useState(null);
+
+  const getKeywords = (text) => {
+    // Split the text into words, remove punctuation and convert to lowercase
+    return text
+      .toLowerCase()
+      .replace(/[^a-z\s]/g, "") // Remove punctuation
+      .split(" ")
+      .filter((word) => word); // Remove empty strings
+  };
+
   const handleSendMessage = () => {
     if (inputMessage.trim()) {
+      // Send the user's message
       setMessages((prevMessages) => [
         ...prevMessages,
         { text: inputMessage, sentByUser: true },
@@ -402,15 +418,28 @@ const Home = () => {
       // Clear input field
       setInputMessage("");
 
+      const userKeywords = getKeywords(inputMessage);
+
+      // Check for a matching pre-built question using keywords
+      const matchedQuestion = preBuiltQuestions.find((item) => {
+        const questionKeywords = getKeywords(item.question);
+        // Check if any user keyword is included in the pre-built question
+        return userKeywords.some((keyword) =>
+          questionKeywords.includes(keyword)
+        );
+      });
+
       // Simulate AI response with a delay
       setTimeout(() => {
-        // Here you can generate an AI response or just return a default message
-        const aiResponse = "Tanong mo kay Badaran baka alam nya"; // Replace with actual AI logic.
+        const aiResponse = matchedQuestion
+          ? matchedQuestion.answer
+          : "I don't have the answer to your question. Please based on the reference question."; // Default response if no match found
+
         setMessages((prevMessages) => [
           ...prevMessages,
           { text: aiResponse, sentByUser: false },
         ]);
-      }, 1000); // Delay in milliseconds (1000 ms = 1 second)
+      }, 1000); // 1 second delay
 
       // Scroll to last message
       messagesRef.current.scrollToEnd({ animated: true });
@@ -446,10 +475,16 @@ const Home = () => {
   };
 
   const handleAddToCart = (item) => {
-    setCartItems((prevItems) => [...prevItems, item]);
-    console.log(`Added ${item.name} to cart`);
+    setSelectedProduct(item);
+    setCustomizationModalVisible(true); // Open customization modal
   };
 
+  const handleAddToCartWithCustomization = (customProduct) => {
+    setCartItems((prevItems) => [...prevItems, customProduct]);
+    console.log(
+      `Added ${customProduct.name} to cart with customization: ${customProduct.customization}`
+    );
+  };
   const filteredProducts = products
     .filter((product) =>
       product.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -567,6 +602,12 @@ const Home = () => {
           <FontAwesome6 name="robot" size={30} color="#d1c2b4" />
         </TouchableOpacity>
       </View>
+      <CustomizationModal
+        visible={isCustomizationModalVisible}
+        onClose={() => setCustomizationModalVisible(false)}
+        onAddToCart={handleAddToCartWithCustomization}
+        product={selectedProduct ? selectedProduct : {}} // Provide a fallback
+      />
       <Modal visible={isChatboxModalVisible} animationType="slide">
         <View style={styles.chatboxModalContainer}>
           <View style={styles.chatboxModalHeader}>
