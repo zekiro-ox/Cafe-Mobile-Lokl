@@ -26,6 +26,7 @@ import {
 import { FontAwesome6 } from "@expo/vector-icons";
 import { Feather } from "@expo/vector-icons";
 import AIProfileIcon from "../../assets/logo.png"; // Replace with your AI profile icon path
+import { getWeatherData } from "../../api/WeatherAPI"; // Adjust the path accordingly
 
 const products = [
   // Updated Coffee Products
@@ -321,7 +322,11 @@ const Home = () => {
   });
 
   const [selectedCategory, setSelectedCategory] = useState("All");
-  const [searchQuery, setSearchQuery] = useState("");
+  const [productSearchQuery, setProductSearchQuery] = useState(""); // For product searching
+  const [citySearchQuery, setCitySearchQuery] = useState(""); // For city searching
+  const [isCitySearchModalVisible, setCitySearchModalVisible] = useState(true);
+  const [currentCity, setCurrentCity] = useState(""); // To store the current city name
+  const [weatherStatus, setWeatherStatus] = useState(""); // To store the weather status
   const [cartItems, setCartItems] = useState([]);
   const [isChatboxModalVisible, setChatboxModalVisible] = useState(false);
   const [messages, setMessages] = useState([]); // State to store messages
@@ -397,6 +402,41 @@ const Home = () => {
   const [isCustomizationModalVisible, setCustomizationModalVisible] =
     useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
+  const [weatherData, setWeatherData] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  const handleCitySearchSubmit = () => {
+    fetchWeather(citySearchQuery);
+    setCitySearchModalVisible(false);
+  };
+
+  // Fetches weather data
+  // Updated fetchWeather function
+  const fetchWeather = async (city) => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const data = await getWeatherData(city);
+      console.log(data);
+
+      // Update the condition to match the new structure
+      if (data && data.current) {
+        setCurrentCity(data.location.name);
+        setWeatherStatus(data.current.condition.text); // Use current condition text
+        setWeatherData(data.current); // Use current weather data directly
+      } else {
+        throw new Error("Invalid weather data structure");
+      }
+    } catch (err) {
+      console.error("Error fetching weather data:", err);
+      setError("Could not fetch weather data. Please try again.");
+      setWeatherData(null);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const getKeywords = (text) => {
     // Split the text into words, remove punctuation and convert to lowercase
@@ -487,7 +527,7 @@ const Home = () => {
   };
   const filteredProducts = products
     .filter((product) =>
-      product.name.toLowerCase().includes(searchQuery.toLowerCase())
+      product.name.toLowerCase().includes(productSearchQuery.toLowerCase())
     )
     .filter(
       (product) =>
@@ -577,17 +617,56 @@ const Home = () => {
 
   return (
     <SafeAreaView style={{ backgroundColor: "#cfc1b1" }} className="flex-1">
+      <Modal visible={isCitySearchModalVisible} animationType="slide">
+        <View style={styles.citySearchModalContainer}>
+          <Text style={styles.citySearchTitle}>Enter City Name</Text>
+          <TextInput
+            placeholder="City Name"
+            onChangeText={setCitySearchQuery}
+            value={citySearchQuery}
+            style={styles.citySearchInput}
+          />
+          <TouchableOpacity onPress={handleCitySearchSubmit}>
+            <Text style={styles.citySearchButton}>Get Weather</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => setCitySearchModalVisible(false)}>
+            <Text style={styles.closeButton}>Close</Text>
+          </TouchableOpacity>
+        </View>
+      </Modal>
       <View style={styles.searchAndMenuContainer}>
         <SearchBar
-          searchQuery={searchQuery}
-          setSearchQuery={setSearchQuery}
+          searchQuery={productSearchQuery} // This handles search for products
+          setSearchQuery={setProductSearchQuery} // For product search
           cartCount={cartItems.length}
         />
+
         <DrinkMenu
           onCategorySelect={handleCategorySelect}
           selectedCategory={selectedCategory}
         />
       </View>
+
+      <View style={styles.weatherContainer}>
+        {loading ? (
+          <Text style={styles.weatherConditionText}>Loading...</Text>
+        ) : error ? (
+          <Text style={styles.weatherConditionText}>{error}</Text>
+        ) : weatherData ? ( // Check if weatherData is directly set from current
+          <>
+            <Text style={styles.weatherText}>{currentCity}</Text>
+            <Text style={styles.temperatureText}>
+              {Math.round(weatherData.temp_c)}°C
+            </Text>
+            <Text style={styles.weatherConditionText}>{weatherStatus}</Text>
+          </>
+        ) : (
+          <Text style={styles.weatherConditionText}>
+            Weather data not available
+          </Text>
+        )}
+      </View>
+
       <View style={styles.contentContainer}>
         <FlatList
           data={filteredProducts}
@@ -857,6 +936,76 @@ const styles = StyleSheet.create({
     padding: 2, // This can remain the same or be adjusted further
     borderRadius: 20, // Increased border radius for rounder borders
     marginRight: 5, // Smaller space between items
+  },
+  citySearchModalContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#cfc1b1",
+  },
+  citySearchTitle: {
+    fontSize: 24,
+    fontWeight: "bold",
+    marginBottom: 20,
+    fontFamily: "Montserrat_700Bold",
+  },
+  citySearchInput: {
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 20,
+    padding: 10,
+    backgroundColor: "#e5dcd3",
+    width: "80%",
+    marginBottom: 20,
+    fontFamily: "Montserrat_400Regular",
+  },
+  citySearchButton: {
+    backgroundColor: "#4f3830",
+    color: "#fff",
+    padding: 10,
+    borderRadius: 20,
+    textAlign: "center",
+    marginBottom: 20,
+    fontFamily: "Montserrat_400Regular",
+  },
+  closeButton: {
+    color: "#4f3830",
+    marginTop: 10,
+    fontFamily: "Montserrat_400Regular",
+  },
+  weatherContainer: {
+    paddingVertical: 15,
+    paddingHorizontal: 20,
+    backgroundColor: "#f7f9fc",
+    borderRadius: 15,
+    marginBottom: 15,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 2,
+    alignItems: "center",
+  },
+
+  weatherText: {
+    fontSize: 22,
+    fontWeight: "bold",
+    fontFamily: "Montserrat_700Bold",
+    color: "#333",
+    marginBottom: 5,
+  },
+
+  weatherConditionText: {
+    fontSize: 16,
+    fontFamily: "Montserrat_400Regular",
+    color: "#4f3830",
+  },
+
+  temperatureText: {
+    fontSize: 30,
+    fontWeight: "bold",
+    fontFamily: "Montserrat_700Bold",
+    color: "#ff6f61",
   },
 
   // Other styles...
