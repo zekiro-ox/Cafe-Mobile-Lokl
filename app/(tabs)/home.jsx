@@ -1052,7 +1052,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     backgroundColor: "#e5dcd3",
     borderRadius: 15,
-    marginBottom: 15,
+    marginBottom: 10,
     marginRight: 15,
     marginLeft: 15,
     shadowColor: "#000",
@@ -1090,7 +1090,7 @@ const styles = StyleSheet.create({
     marginRight: "10px",
   },
   aiAlertText: {
-    color: "#333",
+    color: "#4f3830",
     textAlign: "center",
     fontSize: 16,
     fontFamily: "Montserrat_400Regular",
