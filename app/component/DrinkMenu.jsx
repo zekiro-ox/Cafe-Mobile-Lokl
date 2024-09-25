@@ -20,6 +20,7 @@ const DrinkMenu = ({ onCategorySelect, selectedCategory }) => {
   // Updated drinks categories
   const drinks = [
     "All",
+    "Recommended",
     "Hot Drinks",
     "Ice Blended",
     "Mocktails",

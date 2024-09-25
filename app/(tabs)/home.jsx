@@ -9,8 +9,9 @@ import {
   Modal,
   TextInput,
   ScrollView,
+  Animated,
 } from "react-native";
-import React, { useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 import DrinkMenu from "../component/DrinkMenu";
 import SearchBar from "../component/SearchBar";
@@ -26,7 +27,9 @@ import {
 import { FontAwesome6 } from "@expo/vector-icons";
 import { Feather } from "@expo/vector-icons";
 import AIProfileIcon from "../../assets/logo.png"; // Replace with your AI profile icon path
-import { getWeatherData } from "../../api/WeatherAPI"; // Adjust the path accordingly
+import { getWeatherData } from "../../api/WeatherAPI";
+import { useRouter } from "expo-router";
+import * as Location from "expo-location"; // Adjust the path accordingly
 
 const products = [
   // Updated Coffee Products
@@ -321,9 +324,11 @@ const Home = () => {
     Montserrat_700Bold,
   });
 
-  const [selectedCategory, setSelectedCategory] = useState("All");
+  const [selectedCategory, setSelectedCategory] = useState("Recommended");
   const [productSearchQuery, setProductSearchQuery] = useState(""); // For product searching
   const [citySearchQuery, setCitySearchQuery] = useState(""); // For city searching
+  const [locationPermissionGranted, setLocationPermissionGranted] =
+    useState(false);
   const [isCitySearchModalVisible, setCitySearchModalVisible] = useState(true);
   const [currentCity, setCurrentCity] = useState(""); // To store the current city name
   const [weatherStatus, setWeatherStatus] = useState(""); // To store the weather status
@@ -405,14 +410,74 @@ const Home = () => {
   const [weatherData, setWeatherData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [showAIAlert, setShowAIAlert] = useState(false);
+  const [slideAnim] = useState(new Animated.Value(0));
+  const router = useRouter(); // Initial value for sliding animation
 
   const handleCitySearchSubmit = () => {
     fetchWeather(citySearchQuery);
     setCitySearchModalVisible(false);
+
+    // Show the alert message with animation
+    showAlert();
+
+    // Reset the alert message after 3 seconds
+    setTimeout(hideAlert, 7000); // Change time as needed (3000 ms = 3 seconds)
+  };
+
+  const showAlert = () => {
+    setShowAIAlert(true);
+    Animated.spring(slideAnim, {
+      toValue: 1, // Slide in
+      useNativeDriver: true, // Use native driver for better performance
+    }).start();
+  };
+
+  const hideAlert = () => {
+    Animated.spring(slideAnim, {
+      toValue: 0, // Slide out
+      useNativeDriver: true,
+    }).start(() => {
+      setShowAIAlert(false); // Set the alert visibility to false after the animation
+    });
   };
 
   // Fetches weather data
-  // Updated fetchWeather function
+  useEffect(() => {
+    const getUserLocation = async () => {
+      try {
+        // Request permission to access location
+        const { status } = await Location.requestForegroundPermissionsAsync();
+
+        if (status !== "granted") {
+          console.log("Permission to access location was denied");
+          return;
+        }
+
+        // Get the user's current location
+        const location = await Location.getCurrentPositionAsync({});
+        const { latitude, longitude } = location.coords;
+
+        // Fetch weather data using latitude and longitude
+        const city = await reverseGeocode(latitude, longitude);
+        fetchWeather(city);
+      } catch (error) {
+        console.error("Error fetching location: ", error);
+      }
+    };
+
+    getUserLocation();
+  }, []); // Call once when the component mounts
+
+  const reverseGeocode = async (latitude, longitude) => {
+    // Convert coordinates to a readable city name
+    const region = await Location.reverseGeocodeAsync({ latitude, longitude });
+    if (region.length > 0) {
+      return region[0].city || region[0].postalCode; // Return city or postal code
+    }
+    return ""; // Default return if no region found
+  };
+
   const fetchWeather = async (city) => {
     setLoading(true);
     setError(null);
@@ -421,11 +486,15 @@ const Home = () => {
       const data = await getWeatherData(city);
       console.log(data);
 
-      // Update the condition to match the new structure
       if (data && data.current) {
         setCurrentCity(data.location.name);
-        setWeatherStatus(data.current.condition.text); // Use current condition text
-        setWeatherData(data.current); // Use current weather data directly
+        setWeatherStatus(data.current.condition.text);
+        setWeatherData(data.current);
+
+        showAlert();
+
+        // Reset the alert message after 3 seconds
+        setTimeout(hideAlert, 7000);
       } else {
         throw new Error("Invalid weather data structure");
       }
@@ -445,6 +514,29 @@ const Home = () => {
       .replace(/[^a-z\s]/g, "") // Remove punctuation
       .split(" ")
       .filter((word) => word); // Remove empty strings
+  };
+
+  const recommendDrinksByTemperature = () => {
+    if (!weatherData) return products; // If weather data is not available, return all products
+
+    const temperature = Math.round(weatherData.temp_c); // Get the current temperature
+
+    // Recommend drinks based on temperature
+    if (temperature > 25) {
+      // Hot weather: recommend Ice Blended drinks
+      return products.filter((product) => product.category === "Ice Blended");
+    } else if (temperature < 15) {
+      // Cold weather: recommend Hot Drinks
+      return products.filter((product) => product.category === "Hot Drinks");
+    } else if (temperature >= 15 && temperature <= 25) {
+      // Moderate weather: recommend Mocktails or Tea
+      return products.filter(
+        (product) =>
+          product.category === "Mocktails" || product.category === "Tea"
+      );
+    }
+
+    return products; // Fallback: return all products
   };
 
   const handleSendMessage = () => {
@@ -479,7 +571,7 @@ const Home = () => {
           ...prevMessages,
           { text: aiResponse, sentByUser: false },
         ]);
-      }, 1000); // 1 second delay
+      }, 2000); // 1 second delay
 
       // Scroll to last message
       messagesRef.current.scrollToEnd({ animated: true });
@@ -518,6 +610,12 @@ const Home = () => {
     setSelectedProduct(item);
     setCustomizationModalVisible(true); // Open customization modal
   };
+  const handleLogout = () => {
+    // Perform any necessary logout logic here (e.g., clearing user data)
+
+    // Navigate to the sign-in screen
+    router.replace("/sign-in"); // Ensure this path matches your sign-in route
+  };
 
   const handleAddToCartWithCustomization = (customProduct) => {
     setCartItems((prevItems) => [...prevItems, customProduct]);
@@ -525,14 +623,20 @@ const Home = () => {
       `Added ${customProduct.name} to cart with customization: ${customProduct.customization}`
     );
   };
-  const filteredProducts = products
-    .filter((product) =>
-      product.name.toLowerCase().includes(productSearchQuery.toLowerCase())
-    )
-    .filter(
-      (product) =>
-        selectedCategory === "All" || product.category === selectedCategory
-    );
+  const filteredProducts =
+    selectedCategory === "Recommended"
+      ? recommendDrinksByTemperature() // Get recommended drinks based on temperature
+      : products
+          .filter((product) =>
+            product.name
+              .toLowerCase()
+              .includes(productSearchQuery.toLowerCase())
+          )
+          .filter(
+            (product) =>
+              selectedCategory === "All" ||
+              product.category === selectedCategory
+          );
 
   const renderProduct = ({ item }) => (
     <View style={styles.productItem}>
@@ -617,28 +721,12 @@ const Home = () => {
 
   return (
     <SafeAreaView style={{ backgroundColor: "#cfc1b1" }} className="flex-1">
-      <Modal visible={isCitySearchModalVisible} animationType="slide">
-        <View style={styles.citySearchModalContainer}>
-          <Text style={styles.citySearchTitle}>Enter City Name</Text>
-          <TextInput
-            placeholder="City Name"
-            onChangeText={setCitySearchQuery}
-            value={citySearchQuery}
-            style={styles.citySearchInput}
-          />
-          <TouchableOpacity onPress={handleCitySearchSubmit}>
-            <Text style={styles.citySearchButton}>Get Weather</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => setCitySearchModalVisible(false)}>
-            <Text style={styles.closeButton}>Close</Text>
-          </TouchableOpacity>
-        </View>
-      </Modal>
       <View style={styles.searchAndMenuContainer}>
         <SearchBar
           searchQuery={productSearchQuery} // This handles search for products
           setSearchQuery={setProductSearchQuery} // For product search
           cartCount={cartItems.length}
+          onLogoutPress={handleLogout}
         />
 
         <DrinkMenu
@@ -652,13 +740,15 @@ const Home = () => {
           <Text style={styles.weatherConditionText}>Loading...</Text>
         ) : error ? (
           <Text style={styles.weatherConditionText}>{error}</Text>
-        ) : weatherData ? ( // Check if weatherData is directly set from current
+        ) : weatherData ? (
           <>
             <Text style={styles.weatherText}>{currentCity}</Text>
-            <Text style={styles.temperatureText}>
-              {Math.round(weatherData.temp_c)}°C
-            </Text>
-            <Text style={styles.weatherConditionText}>{weatherStatus}</Text>
+            <View style={styles.weatherInfoContainer}>
+              <Text style={styles.temperatureText}>
+                {Math.round(weatherData.temp_c)}°C
+              </Text>
+              <Text style={styles.weatherConditionText}>{weatherStatus}</Text>
+            </View>
           </>
         ) : (
           <Text style={styles.weatherConditionText}>
@@ -667,6 +757,25 @@ const Home = () => {
         )}
       </View>
 
+      {showAIAlert && (
+        <Animated.View
+          style={{
+            transform: [
+              {
+                translateX: slideAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [500, 0], // From right (500) to original position (0)
+                }),
+              },
+            ],
+          }}
+        >
+          <Text style={styles.aiAlertText}>
+            "Get ready to sip in style! LOKL recommends the best drinks for
+            today's forecast, so you can stay refreshed and on-trend."
+          </Text>
+        </Animated.View>
+      )}
       <View style={styles.contentContainer}>
         <FlatList
           data={filteredProducts}
@@ -937,75 +1046,55 @@ const styles = StyleSheet.create({
     borderRadius: 20, // Increased border radius for rounder borders
     marginRight: 5, // Smaller space between items
   },
-  citySearchModalContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#cfc1b1",
-  },
-  citySearchTitle: {
-    fontSize: 24,
-    fontWeight: "bold",
-    marginBottom: 20,
-    fontFamily: "Montserrat_700Bold",
-  },
-  citySearchInput: {
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 20,
-    padding: 10,
-    backgroundColor: "#e5dcd3",
-    width: "80%",
-    marginBottom: 20,
-    fontFamily: "Montserrat_400Regular",
-  },
-  citySearchButton: {
-    backgroundColor: "#4f3830",
-    color: "#fff",
-    padding: 10,
-    borderRadius: 20,
-    textAlign: "center",
-    marginBottom: 20,
-    fontFamily: "Montserrat_400Regular",
-  },
-  closeButton: {
-    color: "#4f3830",
-    marginTop: 10,
-    fontFamily: "Montserrat_400Regular",
-  },
+
   weatherContainer: {
     paddingVertical: 15,
     paddingHorizontal: 20,
-    backgroundColor: "#f7f9fc",
+    backgroundColor: "#e5dcd3",
     borderRadius: 15,
     marginBottom: 15,
+    marginRight: 15,
+    marginLeft: 15,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 4,
     elevation: 2,
     alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "space-between",
   },
-
+  weatherInfoContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginLeft: 10,
+  },
   weatherText: {
-    fontSize: 22,
+    fontSize: 16,
     fontWeight: "bold",
     fontFamily: "Montserrat_700Bold",
     color: "#333",
     marginBottom: 5,
   },
-
   weatherConditionText: {
-    fontSize: 16,
+    fontSize: 12,
     fontFamily: "Montserrat_400Regular",
     color: "#4f3830",
+    marginLeft: 10, // Added margin to create space
   },
-
   temperatureText: {
-    fontSize: 30,
+    fontSize: 20,
     fontWeight: "bold",
     fontFamily: "Montserrat_700Bold",
-    color: "#ff6f61",
+    color: "#4f3830",
+    marginRight: "10px",
+  },
+  aiAlertText: {
+    color: "#333",
+    textAlign: "center",
+    fontSize: 16,
+    fontFamily: "Montserrat_400Regular",
+    margin: 15,
   },
 
   // Other styles...

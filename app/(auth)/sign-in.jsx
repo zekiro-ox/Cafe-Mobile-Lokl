@@ -17,13 +17,17 @@ import {
 import CheckBox from "react-native-check-box";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, Link } from "expo-router"; // Import useRouter
+import CustomAlert from "../component/CustomeAlert";
 
 export default function SignIn() {
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [password, setPassword] = useState("");
   const [email, setEmail] = useState("");
   const [isChecked, setIsChecked] = useState(false); // State to handle checkbox value
-  const [loading, setLoading] = useState(false); // State to handle loading
+  const [loading, setLoading] = useState(false);
+  const [showCustomAlert, setShowCustomAlert] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
+  // State to handle loading
 
   const [fontsLoaded] = useFonts({
     Montserrat_400Regular,
@@ -46,10 +50,10 @@ export default function SignIn() {
     // Simple authentication check
     if (email === dummyEmail && password === dummyPassword) {
       setLoading(false);
-      // Simulate successful login
-      Alert.alert("Success", "Logged in successfully!");
+      setSuccessMessage("Logged in successfully!");
+      setShowCustomAlert(true);
       // Navigate to home screen using router
-      router.push("/home");
+      router.replace("/home");
     } else {
       setLoading(false);
       // Show error message
@@ -193,6 +197,11 @@ export default function SignIn() {
           </Text>
         </Link>
       </TouchableOpacity>
+      <CustomAlert
+        visible={showCustomAlert}
+        message={successMessage}
+        onClose={() => setShowCustomAlert(false)}
+      />
     </SafeAreaView>
   );
 }

@@ -173,7 +173,7 @@ const styles = StyleSheet.create({
     color: "#333",
     fontWeight: "600", // Semi-bold text
     marginLeft: 10, // Space between the icon and text
-    fontFamily: "Montserrat_700Bold", // Use Montserrat font
+    fontFamily: "Montserrat_400Regular", // Use Montserrat font
   },
   logoutIcon: {
     marginRight: 10, // Space between the icon and text
