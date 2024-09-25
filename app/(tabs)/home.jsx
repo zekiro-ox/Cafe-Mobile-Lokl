@@ -317,6 +317,13 @@ const products = [
 ];
 
 const { width: screenWidth } = Dimensions.get("window");
+const categoryOrder = {
+  "Hot Drinks": 0,
+  "Ice Blended": 1,
+  Mocktails: 2,
+  "Non-Coffee": 3,
+  Tea: 4,
+};
 
 const Home = () => {
   const [fontsLoaded] = useFonts({
@@ -636,35 +643,45 @@ const Home = () => {
             (product) =>
               selectedCategory === "All" ||
               product.category === selectedCategory
+          )
+          .sort(
+            (a, b) => categoryOrder[a.category] - categoryOrder[b.category]
           );
 
-  const renderProduct = ({ item }) => (
-    <View style={styles.productItem}>
-      <Image source={item.image} style={styles.productImage} />
-      <View style={styles.productInfo}>
-        <View style={styles.productHeader}>
-          <Text style={styles.productName}>{item.name}</Text>
-          <View style={styles.ratingContainer}>
-            {[...Array(5)].map((_, index) => (
-              <Icon
-                key={index}
-                name={index < item.rating ? "star" : "star-o"}
-                size={15}
-                color="#caad13"
-                style={styles.star}
-              />
-            ))}
+  const renderProduct = ({ item, index }) => (
+    <View>
+      {selectedCategory === "All" &&
+      (index === 0 ||
+        item.category !== filteredProducts[index - 1].category) ? (
+        <Text style={styles.categoryHeader}>{item.category}</Text>
+      ) : null}
+      <View style={styles.productItem}>
+        <Image source={item.image} style={styles.productImage} />
+        <View style={styles.productInfo}>
+          <View style={styles.productHeader}>
+            <Text style={styles.productName}>{item.name}</Text>
+            <View style={styles.ratingContainer}>
+              {[...Array(5)].map((_, index) => (
+                <Icon
+                  key={index}
+                  name={index < item.rating ? "star" : "star-o"}
+                  size={15}
+                  color="#caad13"
+                  style={styles.star}
+                />
+              ))}
+            </View>
           </View>
+          <Text style={styles.productDescription}>{item.description}</Text>
+          <Text style={styles.productPrice}>{item.price}</Text>
         </View>
-        <Text style={styles.productDescription}>{item.description}</Text>
-        <Text style={styles.productPrice}>{item.price}</Text>
+        <TouchableOpacity
+          style={styles.addButton}
+          onPress={() => handleAddToCart(item)}
+        >
+          <MaterialIcons name="add-shopping-cart" size={24} color="#4f3830" />
+        </TouchableOpacity>
       </View>
-      <TouchableOpacity
-        style={styles.addButton}
-        onPress={() => handleAddToCart(item)}
-      >
-        <MaterialIcons name="add-shopping-cart" size={24} color="#4f3830" />
-      </TouchableOpacity>
     </View>
   );
 
@@ -869,6 +886,18 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     alignItems: "center",
   },
+  categoryHeader: {
+    fontSize: 16,
+    color: "#d1c2b4",
+    backgroundColor: "#4f3830",
+    fontFamily: "Montserrat_700Bold",
+    marginBottom: 10,
+    marginTop: 10,
+    padding: 10,
+    borderTopRightRadius: 50,
+    borderTopLeftRadius: 50,
+    textAlign: "center",
+  },
   productItem: {
     flexDirection: "row",
     backgroundColor: "#e5dcd3",
@@ -1070,8 +1099,7 @@ const styles = StyleSheet.create({
     marginLeft: 10,
   },
   weatherText: {
-    fontSize: 16,
-    fontWeight: "bold",
+    fontSize: 20,
     fontFamily: "Montserrat_700Bold",
     color: "#333",
     marginBottom: 5,
@@ -1084,7 +1112,6 @@ const styles = StyleSheet.create({
   },
   temperatureText: {
     fontSize: 20,
-    fontWeight: "bold",
     fontFamily: "Montserrat_700Bold",
     color: "#4f3830",
     marginRight: "10px",
