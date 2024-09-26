@@ -23,9 +23,9 @@ const DrinkMenu = ({ onCategorySelect, selectedCategory }) => {
     "Recommended",
     "Hot Drinks",
     "Ice Blended",
-    "Mocktails",
     "Non-Coffee",
     "Tea",
+    "Mocktails",
   ];
 
   return (

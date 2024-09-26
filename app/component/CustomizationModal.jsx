@@ -31,16 +31,15 @@ const CustomizationModal = ({ visible, onClose, onAddToCart, product }) => {
 
   // Define options for all customizations
   const milkOptions = [
-    { label: "Whole Milk", value: "whole" },
-    { label: "Skim Milk", value: "skim" },
     { label: "Almond Milk", value: "almond" },
     { label: "Soy Milk", value: "soy" },
   ];
 
   const addOnOptions = [
-    { label: "Extra Shot", value: "extra_shot" },
-    { label: "Whipped Cream", value: "whipped_cream" },
-    { label: "Chocolate Drizzle", value: "chocolate_drizzle" },
+    { label: "Espresso Shots", value: "espresso_shots", price: 10 },
+    { label: "Milk", value: "milk", price: 5 },
+    { label: "Dark Chocolate", value: "dark_chocolate", price: 15 },
+    { label: "Chocolate", value: "chocolate", price: 10 },
   ];
 
   const sugarLevels = [
@@ -79,6 +78,18 @@ const CustomizationModal = ({ visible, onClose, onAddToCart, product }) => {
     });
   };
 
+  // Calculate total price
+  const calculateTotalPrice = () => {
+    let totalPrice = productPrice;
+    Object.keys(selectedAddOns).forEach((addOn) => {
+      const addOnOption = addOnOptions.find((option) => option.value === addOn);
+      if (addOnOption) {
+        const addOnPrice = addOnOption.price;
+        totalPrice += addOnPrice * selectedAddOns[addOn];
+      }
+    });
+    return totalPrice;
+  };
   // Unified function for rendering option sections
   const renderOptionSection = (
     title,
@@ -92,6 +103,7 @@ const CustomizationModal = ({ visible, onClose, onAddToCart, product }) => {
         ? options.map((option) => (
             <View key={option.value} style={styles.addOnContainer}>
               <Text style={styles.radioButtonText}>{option.label}</Text>
+              <Text style={styles.addOnPriceText}>₱{option.price}</Text>
               <View style={styles.addOnControls}>
                 <TouchableOpacity
                   onPress={() => updateAddOnCount(option.value, -1)}
@@ -146,7 +158,7 @@ const CustomizationModal = ({ visible, onClose, onAddToCart, product }) => {
           {/* Updated Title Section */}
           <View style={styles.titleContainer}>
             <Text style={styles.title}>{productName}</Text>
-            <Text style={styles.price}>{productPrice}</Text>
+            <Text style={styles.price}>₱{productPrice}</Text>
           </View>
 
           {/* Description Below the Title */}
@@ -166,7 +178,10 @@ const CustomizationModal = ({ visible, onClose, onAddToCart, product }) => {
             setSelectedSugar,
             selectedSugar
           )}
-
+          <View style={[styles.optionContainer, styles.shadowStyle]}>
+            <Text style={styles.optionTitle}>Total Price</Text>
+            <Text style={styles.totalPriceText}>₱{calculateTotalPrice()}</Text>
+          </View>
           <View style={styles.buttonContainer}>
             <TouchableOpacity style={styles.button} onPress={handleAddToCart}>
               <Text style={styles.buttonText}>Add to Cart</Text>
@@ -310,6 +325,17 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     textAlign: "center",
     fontFamily: "Montserrat_700Bold",
+  },
+  addOnPriceText: {
+    fontSize: 16,
+    fontFamily: "Montserrat_400Regular",
+    marginRight: 10,
+  },
+  totalPriceText: {
+    fontSize: 18,
+    fontFamily: "Montserrat_400Regular",
+    marginBottom: 10,
+    textAlign: "center",
   },
 });
 

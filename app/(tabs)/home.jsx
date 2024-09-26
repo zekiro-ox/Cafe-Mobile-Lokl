@@ -32,20 +32,19 @@ import { useRouter } from "expo-router";
 import * as Location from "expo-location"; // Adjust the path accordingly
 
 const products = [
-  // Updated Coffee Products
   {
     id: "1",
-    name: "Latte",
-    price: "$4.50",
-    description: "Smooth and creamy espresso with steamed milk.",
+    name: "Americano",
+    price: 100,
+    description: "Strong and bold coffee brewed under pressure.",
     image: require("../../assets/Kape.jpg"),
-    rating: 4,
+    rating: 3,
     category: "Hot Drinks",
   },
   {
     id: "2",
     name: "Cappuccino",
-    price: "$5.00",
+    price: 110,
     description: "Espresso topped with a layer of frothy milk.",
     image: require("../../assets/Kape.jpg"),
     rating: 5,
@@ -53,276 +52,191 @@ const products = [
   },
   {
     id: "3",
-    name: "Espresso",
-    price: "$3.00",
-    description: "Strong and bold coffee brewed under pressure.",
+    name: "Caffe Latte",
+    price: 110,
+    description: "Smooth and creamy espresso with steamed milk.",
     image: require("../../assets/Kape.jpg"),
-    rating: 3,
+    rating: 4,
     category: "Hot Drinks",
   },
   {
     id: "4",
-    name: "Mocha",
-    price: "$5.50",
-    description: "Rich chocolate and espresso combined with steamed milk.",
+    name: "Hot Chocolate",
+    price: 110,
+    description: "Rich and creamy hot chocolate topped with whipped cream.",
     image: require("../../assets/Kape.jpg"),
     rating: 4,
     category: "Hot Drinks",
   },
   {
     id: "5",
-    name: "Green Tea",
-    price: "$4.00",
-    description: "Light and refreshing green tea with a hint of sweetness.",
+    name: "Mocha",
+    price: 130,
+    description: "Rich chocolate and espresso combined with steamed milk.",
     image: require("../../assets/Kape.jpg"),
     rating: 4,
-    category: "Tea",
+    category: "Hot Drinks",
   },
   {
     id: "6",
-    name: "Black Coffee",
-    price: "$2.50",
-    description: "Simple and bold brewed coffee.",
+    name: "Vanilla Latte",
+    price: 130,
+    description: "Smooth espresso with steamed milk and vanilla flavor.",
     image: require("../../assets/Kape.jpg"),
-    rating: 3,
+    rating: 4,
     category: "Hot Drinks",
   },
   {
     id: "7",
-    name: "Iced Coffee",
-    price: "$4.00",
-    description: "Chilled coffee served over ice for a refreshing drink.",
+    name: "Matcha Latte",
+    price: 130,
+    description: "Creamy matcha blended with steamed milk.",
     image: require("../../assets/Kape.jpg"),
     rating: 4,
-    category: "Ice Blended",
+    category: "Hot Drinks",
   },
   {
     id: "8",
-    name: "Caramel Macchiato",
-    price: "$5.50",
-    description: "Espresso with caramel syrup and steamed milk.",
+    name: "Lokl Signature",
+    price: 130,
+    description: "A special blend of coffee exclusive to our shop.",
     image: require("../../assets/Kape.jpg"),
     rating: 5,
     category: "Hot Drinks",
   },
   {
     id: "9",
-    name: "Chai Latte",
-    price: "$4.75",
-    description: "Spiced tea with steamed milk and a touch of sweetness.",
-    image: require("../../assets/Kape.jpg"),
-    rating: 4,
-    category: "Tea",
-  },
-  {
-    id: "10",
-    name: "Affogato",
-    price: "$6.00",
-    description: "Vanilla ice cream topped with a shot of hot espresso.",
+    name: "Caramel Macchiato",
+    price: 130,
+    description: "Espresso with caramel syrup and steamed milk.",
     image: require("../../assets/Kape.jpg"),
     rating: 5,
     category: "Hot Drinks",
   },
-
-  // New Smoothies Products
+  {
+    id: "10",
+    name: "Cookies and Cream",
+    price: 170,
+    description: "A delicious blend of cookies and cream flavors.",
+    image: require("../../assets/Kape.jpg"),
+    rating: 5,
+    category: "Ice Blended",
+  },
   {
     id: "11",
-    name: "Strawberry Banana Smoothie",
-    price: "$5.00",
-    description: "A blend of strawberries, bananas, and yogurt.",
+    name: "Java Chip",
+    price: 170,
+    description:
+      "Rich chocolate chips blended with coffee for a refreshing treat.",
     image: require("../../assets/Kape.jpg"),
-    rating: 4,
+    rating: 5,
     category: "Ice Blended",
   },
   {
     id: "12",
-    name: "Mango Smoothie",
-    price: "$5.50",
-    description: "Creamy mango smoothie with a touch of honey.",
+    name: "Matcha Franilla",
+    price: 170,
+    description: "Smooth matcha blended with vanilla for a unique flavor.",
     image: require("../../assets/Kape.jpg"),
-    rating: 5,
+    rating: 4,
     category: "Ice Blended",
   },
   {
     id: "13",
-    name: "Berry Blast Smoothie",
-    price: "$5.75",
-    description: "A fruity mix of blueberries, raspberries, and strawberries.",
+    name: "Strawberry Franilla",
+    price: 170,
+    description: "Creamy strawberry blend with a hint of vanilla.",
     image: require("../../assets/Kape.jpg"),
     rating: 4,
     category: "Ice Blended",
   },
+  // Adding Non-Coffee Products
   {
     id: "14",
-    name: "Green Smoothie",
-    price: "$6.00",
-    description: "A healthy blend of spinach, kale, and apple.",
-    image: require("../../assets/Kape.jpg"),
+    name: "Strawberry Milk",
+    price: 120,
+    description: "Creamy milk blended with fresh strawberries.",
+    image: require("../../assets/Kape.jpg"), // Replace with the correct path
     rating: 5,
-    category: "Ice Blended",
+    category: "Non-Coffee",
   },
-
-  // New Juices Products
   {
     id: "15",
-    name: "Orange Juice",
-    price: "$3.50",
-    description: "Freshly squeezed orange juice.",
-    image: require("../../assets/Kape.jpg"),
+    name: "Iced Chocolate",
+    price: 130,
+    description: "Chilled chocolate drink perfect for warm days.",
+    image: require("../../assets/Kape.jpg"), // Replace with the correct path
     rating: 4,
-    category: "Juices",
+    category: "Non-Coffee",
   },
   {
     id: "16",
-    name: "Apple Juice",
-    price: "$3.50",
-    description: "Sweet and refreshing apple juice.",
-    image: require("../../assets/Kape.jpg"),
+    name: "Matcha Latte",
+    price: 140,
+    description: "Delicious matcha with steamed milk.",
+    image: require("../../assets/Kape.jpg"), // Replace with the correct path
     rating: 4,
-    category: "Juices",
+    category: "Non-Coffee",
   },
   {
     id: "17",
-    name: "Carrot Juice",
-    price: "$4.00",
-    description: "Nutritious carrot juice with a hint of ginger.",
-    image: require("../../assets/Kape.jpg"),
+    name: "Horchata",
+    price: 160,
+    description:
+      "A refreshing Mexican drink made from rice, milk, vanilla, and cinnamon.",
+    image: require("../../assets/Kape.jpg"), // Replace with the correct path
     rating: 5,
-    category: "Juices",
+    category: "Non-Coffee",
   },
   {
     id: "18",
-    name: "Pineapple Juice",
-    price: "$4.00",
-    description: "Tropical pineapple juice with a sweet flavor.",
-    image: require("../../assets/Kape.jpg"),
+    name: "Hot Earl Grey Tea",
+    price: 100,
+    description: "A classic black tea infused with bergamot flavor.",
+    image: require("../../assets/Kape.jpg"), // Replace with the correct path
     rating: 4,
-    category: "Juices",
+    category: "Tea",
   },
-
-  // New Soda Products
   {
     id: "19",
-    name: "Cola",
-    price: "$2.00",
-    description: "Classic cola with a fizzy kick.",
-    image: require("../../assets/Kape.jpg"),
-    rating: 3,
-    category: "Soda",
+    name: "Hot Chamomile Tea",
+    price: 100,
+    description: "A soothing herbal tea made from chamomile flowers.",
+    image: require("../../assets/Kape.jpg"), // Replace with the correct path
+    rating: 5,
+    category: "Tea",
   },
   {
     id: "20",
-    name: "Lemonade",
-    price: "$2.50",
-    description: "Refreshing lemonade with a zesty twist.",
-    image: require("../../assets/Kape.jpg"),
-    rating: 4,
-    category: "Soda",
+    name: "Passion Pea Ade",
+    price: 120,
+    description:
+      "A refreshing blend of passion fruit and butterfly pea flower.",
+    image: require("../../assets/Kape.jpg"), // Replace with the correct path
+    rating: 5,
+    category: "Mocktails",
   },
   {
     id: "21",
-    name: "Root Beer",
-    price: "$2.50",
-    description: "Smooth and creamy root beer.",
-    image: require("../../assets/Kape.jpg"),
-    rating: 4,
-    category: "Soda",
-  },
-  {
-    id: "22",
-    name: "Ginger Ale",
-    price: "$2.75",
-    description: "Spicy and refreshing ginger ale.",
-    image: require("../../assets/Kape.jpg"),
-    rating: 5,
-    category: "Soda",
-  },
-
-  // New Mocktails Products
-  {
-    id: "23",
-    name: "Virgin Mojito",
-    price: "$4.50",
-    description: "A refreshing blend of mint, lime, and soda water.",
-    image: require("../../assets/Kape.jpg"),
-    rating: 4,
-    category: "Mocktails",
-  },
-  {
-    id: "24",
-    name: "Fruit Punch",
-    price: "$4.75",
-    description: "A mix of tropical fruit juices with a hint of grenadine.",
-    image: require("../../assets/Kape.jpg"),
-    rating: 5,
-    category: "Mocktails",
-  },
-  {
-    id: "25",
-    name: "Shirley Temple",
-    price: "$4.00",
+    name: "Strawberry Pea Ade",
+    price: 120,
     description:
-      "A classic mix of ginger ale, grenadine, and a splash of lime.",
-    image: require("../../assets/Kape.jpg"),
-    rating: 4,
-    category: "Mocktails",
-  },
-  {
-    id: "26",
-    name: "Nojito",
-    price: "$4.50",
-    description: "A non-alcoholic mojito with mint, lime, and soda water.",
-    image: require("../../assets/Kape.jpg"),
-    rating: 4,
-    category: "Mocktails",
-  },
-
-  // New Non-Coffee Products
-  {
-    id: "27",
-    name: "Hot Chocolate",
-    price: "$4.00",
-    description: "Rich and creamy hot chocolate topped with whipped cream.",
-    image: require("../../assets/Kape.jpg"),
-    rating: 4,
-    category: "Non-Coffee",
-  },
-  {
-    id: "28",
-    name: "Vanilla Milkshake",
-    price: "$5.00",
-    description: "Smooth and creamy vanilla milkshake with whipped cream.",
-    image: require("../../assets/Kape.jpg"),
+      "A delightful mix of fresh strawberries and butterfly pea flower.",
+    image: require("../../assets/Kape.jpg"), // Replace with the correct path
     rating: 5,
-    category: "Non-Coffee",
-  },
-  {
-    id: "29",
-    name: "Strawberry Milkshake",
-    price: "$5.25",
-    description: "A delicious milkshake made with fresh strawberries.",
-    image: require("../../assets/Kape.jpg"),
-    rating: 4,
-    category: "Non-Coffee",
-  },
-  {
-    id: "30",
-    name: "Chocolate Milkshake",
-    price: "$5.50",
-    description: "Indulgent chocolate milkshake with a rich chocolate flavor.",
-    image: require("../../assets/Kape.jpg"),
-    rating: 5,
-    category: "Non-Coffee",
+    category: "Mocktails",
   },
 ];
+
+// Don't forget to export the products array if needed
 
 const { width: screenWidth } = Dimensions.get("window");
 const categoryOrder = {
   "Hot Drinks": 0,
   "Ice Blended": 1,
-  Mocktails: 2,
-  "Non-Coffee": 3,
-  Tea: 4,
+  "Non-Coffee": 2,
+  Tea: 3,
+  Mocktails: 4,
 };
 
 const Home = () => {
@@ -534,12 +448,15 @@ const Home = () => {
       return products.filter((product) => product.category === "Ice Blended");
     } else if (temperature < 15) {
       // Cold weather: recommend Hot Drinks
-      return products.filter((product) => product.category === "Hot Drinks");
+      return products.filter(
+        (product) =>
+          product.category === "Hot Drinks" || product.category === "Tea"
+      );
     } else if (temperature >= 15 && temperature <= 25) {
       // Moderate weather: recommend Mocktails or Tea
       return products.filter(
         (product) =>
-          product.category === "Mocktails" || product.category === "Tea"
+          product.category === "Mocktails" || product.category === "Non-Coffee"
       );
     }
 
@@ -673,7 +590,7 @@ const Home = () => {
             </View>
           </View>
           <Text style={styles.productDescription}>{item.description}</Text>
-          <Text style={styles.productPrice}>{item.price}</Text>
+          <Text style={styles.productPrice}>₱{item.price}</Text>
         </View>
         <TouchableOpacity
           style={styles.addButton}
