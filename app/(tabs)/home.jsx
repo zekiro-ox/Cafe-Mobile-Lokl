@@ -661,6 +661,7 @@ const Home = () => {
           setSearchQuery={setProductSearchQuery} // For product search
           cartCount={cartItems.length}
           onLogoutPress={handleLogout}
+          cartItems={cartItems}
         />
 
         <DrinkMenu

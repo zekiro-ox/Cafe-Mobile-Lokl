@@ -5,6 +5,8 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
+  Modal,
+  FlatList,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
@@ -20,12 +22,18 @@ const SearchBar = ({
   cartCount,
   searchQuery,
   setSearchQuery,
-  onLogoutPress, // Function to handle logout action
+  onLogoutPress,
+  cartItems = [], // Cart items to display in the modal
 }) => {
   const [isDropdownVisible, setIsDropdownVisible] = useState(false);
+  const [isModalVisible, setIsModalVisible] = useState(false); // State to control modal visibility
 
   const toggleDropdown = () => {
     setIsDropdownVisible(!isDropdownVisible);
+  };
+
+  const toggleModal = () => {
+    setIsModalVisible(!isModalVisible); // Toggle the modal visibility
   };
 
   const [fontsLoaded] = useFonts({
@@ -54,7 +62,7 @@ const SearchBar = ({
           onChangeText={(text) => setSearchQuery(text)}
         />
 
-        <TouchableOpacity style={styles.cartContainer}>
+        <TouchableOpacity style={styles.cartContainer} onPress={toggleModal}>
           <MaterialIcons name="shopping-cart" size={24} color="#737373" />
           {cartCount > 0 && (
             <View style={styles.cartBadge}>
@@ -64,7 +72,6 @@ const SearchBar = ({
         </TouchableOpacity>
       </View>
 
-      {/* Profile Icon and Dropdown */}
       <View style={styles.profileContainer}>
         <TouchableOpacity
           onPress={toggleDropdown}
@@ -90,6 +97,41 @@ const SearchBar = ({
           </View>
         )}
       </View>
+
+      <Modal
+        visible={isModalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={toggleModal}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <Text style={styles.modalTitle}>Your Cart</Text>
+
+            {cartItems.length > 0 ? (
+              <FlatList
+                data={cartItems}
+                keyExtractor={(item) => item.id.toString()} // Assuming id is unique
+                renderItem={({ item }) => (
+                  <View style={styles.cartItem}>
+                    <Text style={styles.cartItemText}>{item.name}</Text>
+
+                    <Text style={styles.cartItemPrice}>
+                      ₱{item.price.toFixed(2)}
+                    </Text>
+                  </View>
+                )}
+              />
+            ) : (
+              <Text style={styles.emptyCartText}>Your cart is empty</Text>
+            )}
+
+            <TouchableOpacity style={styles.closeButton} onPress={toggleModal}>
+              <Text style={styles.closeButtonText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -103,7 +145,7 @@ const styles = StyleSheet.create({
     marginVertical: 10,
   },
   searchBarContainer: {
-    flex: 1, // Makes the search bar take up available space
+    flex: 1,
     flexDirection: "row",
     backgroundColor: "#fff",
     borderRadius: 20,
@@ -118,7 +160,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 16,
     color: "#333",
-    fontFamily: "Montserrat_400Regular", // Use Montserrat font
+    fontFamily: "Montserrat_400Regular",
   },
   cartContainer: {
     flexDirection: "row",
@@ -129,7 +171,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     right: -5,
     top: -8,
-    backgroundColor: "#e5dcd3", // Badge color
+    backgroundColor: "#e5dcd3",
     borderRadius: 50,
     paddingHorizontal: 5,
     paddingVertical: 2,
@@ -140,14 +182,14 @@ const styles = StyleSheet.create({
     fontFamily: "Montserrat_700Bold",
   },
   profileContainer: {
-    position: "relative", // Allows the dropdown to be positioned relative to the profile icon
+    position: "relative",
   },
   profileIconContainer: {
     paddingLeft: 10,
   },
   dropdownMenu: {
     position: "absolute",
-    top: 35, // Positioning the dropdown below the profile icon
+    top: 35,
     right: 0,
     backgroundColor: "#e5dcd3",
     borderRadius: 30,
@@ -157,10 +199,10 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 4,
-    elevation: 5, // Shadow effect for Android
+    elevation: 5,
     paddingVertical: 5,
     zIndex: 1,
-    width: 120, // Set the width for the dropdown
+    width: 120,
   },
   dropdownItemContainer: {
     flexDirection: "row",
@@ -171,12 +213,59 @@ const styles = StyleSheet.create({
   dropdownItem: {
     fontSize: 12,
     color: "#333",
-    fontWeight: "600", // Semi-bold text
-    marginLeft: 10, // Space between the icon and text
-    fontFamily: "Montserrat_400Regular", // Use Montserrat font
+    fontWeight: "600",
+    marginLeft: 10,
+    fontFamily: "Montserrat_400Regular",
   },
   logoutIcon: {
-    marginRight: 10, // Space between the icon and text
+    marginRight: 10,
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0, 0, 0, 0.5)", // Semi-transparent background
+  },
+  modalContainer: {
+    width: "80%",
+    backgroundColor: "#fff",
+    borderRadius: 20,
+    padding: 20,
+    alignItems: "center",
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    marginBottom: 15,
+  },
+  cartItem: {
+    padding: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: "#eee",
+    width: "100%",
+  },
+  cartItemText: {
+    fontSize: 16,
+    color: "#333",
+  },
+  emptyCartText: {
+    fontSize: 16,
+    color: "#999",
+  },
+  closeButton: {
+    marginTop: 20,
+    backgroundColor: "#e5dcd3",
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 20,
+  },
+  closeButtonText: {
+    fontSize: 16,
+    color: "#333",
+  },
+  cartItemPrice: {
+    fontSize: 14,
+    color: "#999",
   },
 });
 
