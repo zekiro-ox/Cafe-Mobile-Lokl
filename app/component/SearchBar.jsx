@@ -7,33 +7,57 @@ import {
   StyleSheet,
   Modal,
   FlatList,
+  Image,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
-import Entypo from "@expo/vector-icons/Entypo"; // Import Entypo for the logout icon
+import Entypo from "@expo/vector-icons/Entypo";
 import {
   useFonts,
   Montserrat_400Regular,
   Montserrat_700Bold,
 } from "@expo-google-fonts/montserrat";
+import CustomizationModal from "./CustomizationModal";
+
+const RadioButton = ({ selected, onPress }) => {
+  return (
+    <TouchableOpacity onPress={onPress} style={styles.radioButtonContainer}>
+      <View
+        style={[styles.radioButton, selected && styles.radioButtonSelected]}
+      >
+        {selected && <View style={styles.radioButtonInner} />}
+      </View>
+    </TouchableOpacity>
+  );
+};
 
 const SearchBar = ({
   cartCount,
   searchQuery,
   setSearchQuery,
   onLogoutPress,
-  cartItems = [], // Cart items to display in the modal
+  cartItems = [],
+  setCartItems,
 }) => {
   const [isDropdownVisible, setIsDropdownVisible] = useState(false);
-  const [isModalVisible, setIsModalVisible] = useState(false); // State to control modal visibility
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [selectedCartItems, setSelectedCartItems] = useState([]);
+  const [customizationProduct, setCustomizationProduct] = useState(null);
+  const [isCustomizationModalVisible, setCustomizationModalVisible] =
+    useState(false);
+  const [totalPrice, setTotalPrice] = useState(0); // Step 1: Add total price state
 
   const toggleDropdown = () => {
     setIsDropdownVisible(!isDropdownVisible);
   };
 
   const toggleModal = () => {
-    setIsModalVisible(!isModalVisible); // Toggle the modal visibility
+    setIsModalVisible(!isModalVisible);
+  };
+
+  const toggleCustomizationModal = () => {
+    setCustomizationModalVisible(!isCustomizationModalVisible);
   };
 
   const [fontsLoaded] = useFonts({
@@ -44,6 +68,90 @@ const SearchBar = ({
   if (!fontsLoaded) {
     return null; // You can return a loading indicator here if needed
   }
+
+  // Step 1: Calculate the total price based on selected items
+  const calculateTotalPrice = () => {
+    const total = selectedCartItems.reduce((sum, id) => {
+      const item = cartItems.find((cartItem) => cartItem.id === id);
+      if (item) {
+        const itemTotalPrice = item.totalPrice * item.quantity; // Ensure you multiply by quantity
+        console.log(
+          `Item ID: ${id}, Price: ${item.totalPrice}, Quantity: ${item.quantity}, Item Total: ${itemTotalPrice}`
+        );
+        return sum + itemTotalPrice;
+      }
+      return sum;
+    }, 0);
+    setTotalPrice(total);
+    console.log(`Total Price: ₱${total.toFixed(2)}`); // Log total price
+  };
+
+  const renderCartItem = ({ item }) => {
+    const milkType = item.milkType;
+    const addOns = Object.keys(item.addOns)
+      .map((addOn) => `${item.addOns[addOn]} x ${addOn.replace("_", " ")}`)
+      .join(", ");
+    const sugarLevel = item.sugarLevel;
+
+    const isSelected = selectedCartItems.includes(item.id); // Check if the item is selected
+
+    return (
+      <View style={styles.cartItem}>
+        <RadioButton
+          selected={isSelected}
+          onPress={() => {
+            // Toggle selection state
+            const newSelectedCartItems = isSelected
+              ? selectedCartItems.filter((id) => id !== item.id)
+              : [...selectedCartItems, item.id];
+
+            setSelectedCartItems(newSelectedCartItems);
+            calculateTotalPrice(); // Recalculate total price on selection change
+          }}
+        />
+        <View style={styles.cartItemImageContainer}>
+          <Image source={item.image} style={styles.cartItemImage} />
+        </View>
+        <View style={styles.cartItemDetailsContainer}>
+          <View style={styles.cartItemDetails}>
+            <Text style={styles.cartItemText}>{item.name}</Text>
+            <Text style={styles.cartItemPrice}>
+              ₱{(item.totalPrice * item.quantity).toFixed(2)}
+            </Text>
+          </View>
+          <View style={styles.cartItemCustomizationContainer}>
+            <Text style={styles.cartItemCustomizationTitle}>
+              Customization:
+            </Text>
+            <Text style={styles.cartItemCustomization}>Milk: {milkType}</Text>
+            {addOns && (
+              <Text style={styles.cartItemCustomization}>
+                Add Ons: {addOns}
+              </Text>
+            )}
+            <Text style={styles.cartItemCustomization}>
+              Sugar Level: {sugarLevel}
+            </Text>
+          </View>
+          <View style={styles.cartItemQuantityContainer}>
+            <Text style={styles.cartItemCustomization}>
+              Quantity: {item.quantity}
+            </Text>
+          </View>
+          <TouchableOpacity
+            style={styles.editButton}
+            onPress={() => {
+              // Open the customization modal with the item details
+              setCustomizationProduct(item);
+              toggleCustomizationModal();
+            }}
+          >
+            <Text style={styles.editButtonText}>Edit</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  };
 
   return (
     <View style={styles.container}>
@@ -107,40 +215,48 @@ const SearchBar = ({
         <View style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
             <Text style={styles.modalTitle}>Your Cart</Text>
-
-            {cartItems.length > 0 ? (
-              <FlatList
-                data={cartItems}
-                keyExtractor={(item) => item.id.toString()} // Assuming id is unique
-                renderItem={({ item }) => (
-                  <View style={styles.cartItem}>
-                    <Text style={styles.cartItemText}>{item.name}</Text>
-
-                    <Text style={styles.cartItemPrice}>
-                      ₱{item.price.toFixed(2)}
-                    </Text>
-                  </View>
-                )}
-              />
-            ) : (
-              <Text style={styles.emptyCartText}>Your cart is empty</Text>
-            )}
-
+            <View style={styles.scrollContainer}>
+              {cartItems.length > 0 ? (
+                <FlatList
+                  data={cartItems}
+                  keyExtractor={(item) => item.id.toString()}
+                  renderItem={renderCartItem}
+                  scrollEnabled={true} // Enable FlatList scrolling
+                  style={{ maxHeight: 350 }} // Set max height for items
+                />
+              ) : (
+                <Text style={styles.emptyCartText}>Your cart is empty</Text>
+              )}
+            </View>
+            <Text style={styles.totalPriceText}>
+              Total Price: ₱{totalPrice.toFixed(2)}
+            </Text>
             <TouchableOpacity style={styles.closeButton} onPress={toggleModal}>
               <Text style={styles.closeButtonText}>Close</Text>
             </TouchableOpacity>
           </View>
         </View>
       </Modal>
+      <CustomizationModal
+        visible={isCustomizationModalVisible}
+        onClose={toggleCustomizationModal}
+        onAddToCart={(updatedProduct) => {
+          const updatedCartItems = cartItems.map((cartItem) =>
+            cartItem.id === updatedProduct.id ? updatedProduct : cartItem
+          );
+          setCartItems(updatedCartItems);
+          toggleCustomizationModal(); // Close the modal after updating
+        }}
+        product={customizationProduct}
+      />
     </View>
   );
 };
-
 const styles = StyleSheet.create({
   container: {
-    flexDirection: "row", // Aligns search bar and profile icon in a row
-    justifyContent: "space-between", // Pushes elements apart
-    alignItems: "center", // Aligns items vertically centered
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginHorizontal: 15,
     marginVertical: 10,
   },
@@ -224,48 +340,133 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "rgba(0, 0, 0, 0.5)", // Semi-transparent background
+    backgroundColor: "rgba(0, 0, 0, 0.6)", // Increased transparency
   },
   modalContainer: {
-    width: "80%",
-    backgroundColor: "#fff",
+    width: "85%",
+    backgroundColor: "#e5dcd3",
     borderRadius: 20,
-    padding: 20,
-    alignItems: "center",
+    padding: 25,
+    paddingTop: 30,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 5,
   },
   modalTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
+    fontSize: 20,
+    fontFamily: "Montserrat_700Bold",
     marginBottom: 15,
+    textAlign: "center",
+  },
+  scrollContainer: {
+    maxHeight: 350, // Adjust this value to fit your design
+    overflow: "scroll", // Allows scrolling if needed
   },
   cartItem: {
-    padding: 10,
+    flexDirection: "row",
+    justifyContent: "flex-start",
+    paddingVertical: 15,
     borderBottomWidth: 1,
     borderBottomColor: "#eee",
     width: "100%",
   },
+  cartItemImageContainer: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    marginRight: 15,
+  },
+  cartItemImage: {
+    width: "100%",
+    height: "100%",
+    borderRadius: 30,
+  },
+  cartItemDetailsContainer: {
+    flex: 1,
+  },
+  cartItemDetails: {
+    flexDirection: "column",
+    justifyContent: "flex-start",
+    alignItems: "flex-start",
+  },
   cartItemText: {
-    fontSize: 16,
-    color: "#333",
-  },
-  emptyCartText: {
-    fontSize: 16,
-    color: "#999",
-  },
-  closeButton: {
-    marginTop: 20,
-    backgroundColor: "#e5dcd3",
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 20,
-  },
-  closeButtonText: {
-    fontSize: 16,
-    color: "#333",
+    fontSize: 14,
+    fontFamily: "Montserrat_700Bold",
+    marginBottom: 5,
   },
   cartItemPrice: {
     fontSize: 14,
-    color: "#999",
+    fontFamily: "Montserrat_700Bold",
+    marginBottom: 5,
+  },
+  cartItemCustomizationContainer: {
+    marginTop: 10,
+  },
+  cartItemCustomizationTitle: {
+    fontSize: 14,
+    fontFamily: "Montserrat_400Regular",
+    color: "#333",
+    marginBottom: 5,
+  },
+  cartItemCustomization: {
+    fontSize: 12,
+    fontFamily: "Montserrat_400Regular",
+    color: "#666",
+  },
+  closeButtonText: {
+    fontSize: 14,
+    fontFamily: "Montserrat_400Regular",
+    marginBottom: 5,
+    marginTop: 10,
+  },
+  cartItemQuantityContainer: {
+    marginTop: 10,
+  },
+  radioButtonContainer: {
+    marginRight: 15,
+    marginTop: 15,
+    flexDirection: "row",
+    justifyContent: "flex-start",
+  },
+  radioButton: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: "#737373", // Outer border color
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  radioButtonSelected: {
+    borderColor: "#3b5998", // Color when selected
+  },
+  radioButtonInner: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: "#3b5998", // Inner color when selected
+  },
+  editButton: {
+    padding: 10,
+    backgroundColor: "#4f3830",
+    borderRadius: 20,
+    flex: 1,
+    marginHorizontal: 10,
+    marginTop: 10,
+  },
+  editButtonText: {
+    color: "#fff",
+    fontSize: 15,
+    textAlign: "center",
+    fontFamily: "Montserrat_400Regular", // Center the text
+  },
+  totalPriceText: {
+    fontSize: 16,
+    fontFamily: "Montserrat_700Bold",
+    marginTop: 15,
+    textAlign: "center",
   },
 });
 

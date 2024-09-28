@@ -662,6 +662,7 @@ const Home = () => {
           cartCount={cartItems.length}
           onLogoutPress={handleLogout}
           cartItems={cartItems}
+          setCartItems={setCartItems}
         />
 
         <DrinkMenu

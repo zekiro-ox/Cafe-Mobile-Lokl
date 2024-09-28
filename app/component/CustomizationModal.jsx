@@ -20,9 +20,14 @@ import {
 const { height: screenHeight } = Dimensions.get("window");
 
 const CustomizationModal = ({ visible, onClose, onAddToCart, product }) => {
+  if (!product) {
+    return null; // Or handle it in a way that suits your app
+  }
   const productName = product.name || "Product"; // Default to "Product" if name is not defined
   const productDescription = product.description || "No description available"; // Default if description is not defined
-  const productPrice = product.price || "Price not available"; // Default if price is not defined
+  const productPrice = product.price || 0;
+
+  // Default if price is not defined
 
   const [fontsLoaded] = useFonts({
     Montserrat_400Regular,
@@ -49,23 +54,34 @@ const CustomizationModal = ({ visible, onClose, onAddToCart, product }) => {
   ];
 
   // State to keep track of selected options
-  const [selectedMilk, setSelectedMilk] = React.useState(milkOptions[0].value);
+  const [selectedMilk, setSelectedMilk] = React.useState(
+    product?.milkType || milkOptions[0]?.value
+  );
+
   const [selectedAddOns, setSelectedAddOns] = React.useState(
     addOnOptions.reduce((acc, option) => {
-      acc[option.value] = 0; // Initialize count to 0 for each add-on
+      acc[option.value] = product?.addOns?.[option.value] || 0; // Use optional chaining
       return acc;
     }, {})
   );
+
   const [selectedSugar, setSelectedSugar] = React.useState(
-    sugarLevels[0].value
+    product?.sugarLevel || sugarLevels[0]?.value
+  );
+
+  const [productQuantity, setProductQuantity] = React.useState(
+    product?.quantity || 1
   );
 
   const handleAddToCart = () => {
+    const totalPrice = calculateTotalPrice(); // Get the calculated total price
     onAddToCart({
       ...product,
       milkType: selectedMilk,
       addOns: selectedAddOns,
       sugarLevel: selectedSugar,
+      totalPrice, // Include total price instead of productPrice
+      quantity: productQuantity, // Include product quantity
     });
     onClose(); // Close the modal after adding to cart
   };
@@ -80,7 +96,7 @@ const CustomizationModal = ({ visible, onClose, onAddToCart, product }) => {
 
   // Calculate total price
   const calculateTotalPrice = () => {
-    let totalPrice = productPrice;
+    let totalPrice = productPrice * productQuantity; // Base price multiplied by quantity
     Object.keys(selectedAddOns).forEach((addOn) => {
       const addOnOption = addOnOptions.find((option) => option.value === addOn);
       if (addOnOption) {
@@ -90,6 +106,15 @@ const CustomizationModal = ({ visible, onClose, onAddToCart, product }) => {
     });
     return totalPrice;
   };
+
+  // Function to handle incrementing and decrementing the product quantity
+  const updateProductQuantity = (increment) => {
+    setProductQuantity((prev) => {
+      const newQuantity = prev + increment;
+      return newQuantity < 1 ? 1 : newQuantity; // Prevent quantity from going below 1
+    });
+  };
+
   // Unified function for rendering option sections
   const renderOptionSection = (
     title,
@@ -178,6 +203,22 @@ const CustomizationModal = ({ visible, onClose, onAddToCart, product }) => {
             setSelectedSugar,
             selectedSugar
           )}
+
+          {/* Quantity Section */}
+          <View style={[styles.optionContainer, styles.shadowStyle]}>
+            <View style={styles.quantityHeader}>
+              <Text style={styles.optionTitle}>Quantity</Text>
+              <View style={styles.addOnControls}>
+                <TouchableOpacity onPress={() => updateProductQuantity(-1)}>
+                  <Text style={styles.controlButton}>-</Text>
+                </TouchableOpacity>
+                <Text style={styles.addOnCountText}>{productQuantity}</Text>
+                <TouchableOpacity onPress={() => updateProductQuantity(1)}>
+                  <Text style={styles.controlButton}>+</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
           <View style={[styles.optionContainer, styles.shadowStyle]}>
             <Text style={styles.optionTitle}>Total Price</Text>
             <Text style={styles.totalPriceText}>₱{calculateTotalPrice()}</Text>
@@ -302,7 +343,6 @@ const styles = StyleSheet.create({
     textAlign: "center",
     fontFamily: "Montserrat_400Regular",
   },
-
   shadowStyle: {
     shadowColor: "#000",
     shadowOffset: {
@@ -336,6 +376,11 @@ const styles = StyleSheet.create({
     fontFamily: "Montserrat_400Regular",
     marginBottom: 10,
     textAlign: "center",
+  },
+  quantityHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
   },
 });
 
