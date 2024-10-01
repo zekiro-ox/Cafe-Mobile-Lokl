@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -19,6 +19,7 @@ import {
   Montserrat_700Bold,
 } from "@expo-google-fonts/montserrat";
 import CustomizationModal from "./CustomizationModal";
+import { useRouter } from "expo-router";
 
 const RadioButton = ({ selected, onPress }) => {
   return (
@@ -31,7 +32,6 @@ const RadioButton = ({ selected, onPress }) => {
     </TouchableOpacity>
   );
 };
-
 const SearchBar = ({
   cartCount,
   searchQuery,
@@ -46,7 +46,9 @@ const SearchBar = ({
   const [customizationProduct, setCustomizationProduct] = useState(null);
   const [isCustomizationModalVisible, setCustomizationModalVisible] =
     useState(false);
-  const [totalPrice, setTotalPrice] = useState(0); // Step 1: Add total price state
+  const [totalPrice, setTotalPrice] = useState(0);
+
+  const router = useRouter(); // Use useRouter for navigation
 
   const toggleDropdown = () => {
     setIsDropdownVisible(!isDropdownVisible);
@@ -65,26 +67,17 @@ const SearchBar = ({
     Montserrat_700Bold,
   });
 
-  if (!fontsLoaded) {
-    return null; // You can return a loading indicator here if needed
-  }
-
-  // Step 1: Calculate the total price based on selected items
   const calculateTotalPrice = () => {
-    const total = selectedCartItems.reduce((sum, id) => {
-      const item = cartItems.find((cartItem) => cartItem.id === id);
-      if (item) {
-        const itemTotalPrice = item.totalPrice * item.quantity; // Ensure you multiply by quantity
-        console.log(
-          `Item ID: ${id}, Price: ${item.totalPrice}, Quantity: ${item.quantity}, Item Total: ${itemTotalPrice}`
-        );
-        return sum + itemTotalPrice;
-      }
-      return sum;
+    const total = cartItems.reduce((sum, item) => {
+      const itemTotalPrice = item.totalPrice;
+      return sum + (selectedCartItems.includes(item.id) ? itemTotalPrice : 0);
     }, 0);
     setTotalPrice(total);
-    console.log(`Total Price: ₱${total.toFixed(2)}`); // Log total price
   };
+
+  useEffect(() => {
+    calculateTotalPrice();
+  }, [cartItems, selectedCartItems]);
 
   const renderCartItem = ({ item }) => {
     const milkType = item.milkType;
@@ -92,21 +85,19 @@ const SearchBar = ({
       .map((addOn) => `${item.addOns[addOn]} x ${addOn.replace("_", " ")}`)
       .join(", ");
     const sugarLevel = item.sugarLevel;
-
-    const isSelected = selectedCartItems.includes(item.id); // Check if the item is selected
+    const isSelected = selectedCartItems.includes(item.id);
 
     return (
       <View style={styles.cartItem}>
         <RadioButton
           selected={isSelected}
           onPress={() => {
-            // Toggle selection state
             const newSelectedCartItems = isSelected
               ? selectedCartItems.filter((id) => id !== item.id)
               : [...selectedCartItems, item.id];
 
             setSelectedCartItems(newSelectedCartItems);
-            calculateTotalPrice(); // Recalculate total price on selection change
+            calculateTotalPrice();
           }}
         />
         <View style={styles.cartItemImageContainer}>
@@ -116,7 +107,7 @@ const SearchBar = ({
           <View style={styles.cartItemDetails}>
             <Text style={styles.cartItemText}>{item.name}</Text>
             <Text style={styles.cartItemPrice}>
-              ₱{(item.totalPrice * item.quantity).toFixed(2)}
+              ₱{item.totalPrice.toFixed(2)}
             </Text>
           </View>
           <View style={styles.cartItemCustomizationContainer}>
@@ -138,21 +129,33 @@ const SearchBar = ({
               Quantity: {item.quantity}
             </Text>
           </View>
-          <TouchableOpacity
-            style={styles.editButton}
-            onPress={() => {
-              // Open the customization modal with the item details
-              setCustomizationProduct(item);
-              toggleCustomizationModal();
-            }}
-          >
-            <Text style={styles.editButtonText}>Edit</Text>
-          </TouchableOpacity>
+          <View style={styles.buttonContainer}>
+            <TouchableOpacity
+              style={styles.editButton}
+              onPress={() => {
+                setCustomizationProduct(item);
+                toggleCustomizationModal();
+              }}
+            >
+              <Text style={styles.editButtonText}>Edit</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.removeButton}
+              onPress={() => {
+                const updatedCartItems = cartItems.filter(
+                  (cartItem) => cartItem.id !== item.id
+                );
+                setCartItems(updatedCartItems);
+                calculateTotalPrice(); // Recalculate total price after removing item
+              }}
+            >
+              <Text style={styles.removeButtonText}>X</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
     );
   };
-
   return (
     <View style={styles.container}>
       <View style={styles.searchBarContainer}>
@@ -169,7 +172,6 @@ const SearchBar = ({
           value={searchQuery}
           onChangeText={(text) => setSearchQuery(text)}
         />
-
         <TouchableOpacity style={styles.cartContainer} onPress={toggleModal}>
           <MaterialIcons name="shopping-cart" size={24} color="#737373" />
           {cartCount > 0 && (
@@ -214,6 +216,13 @@ const SearchBar = ({
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
+            <TouchableOpacity
+              style={styles.closeIconContainer}
+              onPress={toggleModal}
+            >
+              <Entypo name="cross" size={28} color="#737373" />
+            </TouchableOpacity>
+
             <Text style={styles.modalTitle}>Your Cart</Text>
             <View style={styles.scrollContainer}>
               {cartItems.length > 0 ? (
@@ -221,8 +230,8 @@ const SearchBar = ({
                   data={cartItems}
                   keyExtractor={(item) => item.id.toString()}
                   renderItem={renderCartItem}
-                  scrollEnabled={true} // Enable FlatList scrolling
-                  style={{ maxHeight: 350 }} // Set max height for items
+                  scrollEnabled={true}
+                  style={{ maxHeight: 350 }}
                 />
               ) : (
                 <Text style={styles.emptyCartText}>Your cart is empty</Text>
@@ -231,12 +240,31 @@ const SearchBar = ({
             <Text style={styles.totalPriceText}>
               Total Price: ₱{totalPrice.toFixed(2)}
             </Text>
-            <TouchableOpacity style={styles.closeButton} onPress={toggleModal}>
-              <Text style={styles.closeButtonText}>Close</Text>
+            <TouchableOpacity
+              style={styles.checkoutButton}
+              onPress={() => {
+                // Filter the cart items based on selectedCartItems
+                const selectedItems = cartItems.filter((item) =>
+                  selectedCartItems.includes(item.id)
+                );
+
+                // Navigate to the Order screen with selected items and total price
+                router.push({
+                  pathname: "order", // Adjust to your order screen path
+                  params: {
+                    selectedItems, // Pass selected items directly
+                    totalPrice: totalPrice.toFixed(2), // Ensure totalPrice is formatted correctly
+                  },
+                });
+                toggleModal(); // Close the modal
+              }}
+            >
+              <Text style={styles.checkoutButtonText}>Checkout</Text>
             </TouchableOpacity>
           </View>
         </View>
       </Modal>
+
       <CustomizationModal
         visible={isCustomizationModalVisible}
         onClose={toggleCustomizationModal}
@@ -245,13 +273,15 @@ const SearchBar = ({
             cartItem.id === updatedProduct.id ? updatedProduct : cartItem
           );
           setCartItems(updatedCartItems);
-          toggleCustomizationModal(); // Close the modal after updating
+          calculateTotalPrice();
+          toggleCustomizationModal();
         }}
         product={customizationProduct}
       />
     </View>
   );
 };
+
 const styles = StyleSheet.create({
   container: {
     flexDirection: "row",
@@ -360,6 +390,12 @@ const styles = StyleSheet.create({
     marginBottom: 15,
     textAlign: "center",
   },
+  emptyCartText: {
+    fontSize: 14,
+    fontFamily: "Montserrat_400Regular",
+    marginBottom: 15,
+    textAlign: "center",
+  },
   scrollContainer: {
     maxHeight: 350, // Adjust this value to fit your design
     overflow: "scroll", // Allows scrolling if needed
@@ -415,11 +451,11 @@ const styles = StyleSheet.create({
     fontFamily: "Montserrat_400Regular",
     color: "#666",
   },
-  closeButtonText: {
-    fontSize: 14,
-    fontFamily: "Montserrat_400Regular",
-    marginBottom: 5,
-    marginTop: 10,
+  closeIconContainer: {
+    position: "absolute",
+    top: 15,
+    right: 15,
+    zIndex: 1,
   },
   cartItemQuantityContainer: {
     marginTop: 10,
@@ -448,25 +484,59 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     backgroundColor: "#3b5998", // Inner color when selected
   },
+  buttonContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between", // Align buttons evenly
+    marginTop: 10,
+  },
   editButton: {
     padding: 10,
     backgroundColor: "#4f3830",
-    borderRadius: 20,
+    borderRadius: 15,
     flex: 1,
-    marginHorizontal: 10,
-    marginTop: 10,
+    marginRight: 5, // Add space between Edit and Remove buttons
   },
   editButtonText: {
     color: "#fff",
     fontSize: 15,
     textAlign: "center",
-    fontFamily: "Montserrat_400Regular", // Center the text
+    fontFamily: "Montserrat_700Bold", // Center the text
+  },
+  removeButton: {
+    padding: 10,
+    backgroundColor: "#333",
+    borderRadius: 15, // Make it circular
+    width: 40, // Adjust width for better look
+    height: 40, // Adjust height for better look
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  removeButtonText: {
+    color: "#fff",
+    fontSize: 15,
+    textAlign: "center",
+    fontFamily: "Montserrat_700Bold", // Center the text
   },
   totalPriceText: {
     fontSize: 16,
     fontFamily: "Montserrat_700Bold",
     marginTop: 15,
     textAlign: "center",
+  },
+  checkoutButton: {
+    marginTop: 10,
+    backgroundColor: "#4f3830", // Set the color for the checkout button
+    paddingVertical: 10, // Adjust the vertical padding
+    paddingHorizontal: 20, // Set the left and right padding to a smaller value
+    borderRadius: 15,
+    alignItems: "center",
+    width: 150, // Adjust the width to make it smaller
+    alignSelf: "center", // Center the button within its container
+  },
+  checkoutButtonText: {
+    color: "#fff",
+    fontSize: 15, // Adjusted font size for smaller button
+    fontFamily: "Montserrat_700Bold",
   },
 });
 

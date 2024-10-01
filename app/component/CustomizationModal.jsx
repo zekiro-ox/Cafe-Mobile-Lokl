@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import {
   View,
   Modal,
@@ -23,18 +23,17 @@ const CustomizationModal = ({ visible, onClose, onAddToCart, product }) => {
   if (!product) {
     return null; // Or handle it in a way that suits your app
   }
-  const productName = product.name || "Product"; // Default to "Product" if name is not defined
-  const productDescription = product.description || "No description available"; // Default if description is not defined
-  const productPrice = product.price || 0;
 
-  // Default if price is not defined
+  const productName = product.name || "Product"; // Default to "Product"
+  const productDescription = product.description || "No description available";
+  const productPrice = product.price || 0;
 
   const [fontsLoaded] = useFonts({
     Montserrat_400Regular,
     Montserrat_700Bold,
   });
 
-  // Define options for all customizations
+  // Default options for customizations
   const milkOptions = [
     { label: "Almond Milk", value: "almond" },
     { label: "Soy Milk", value: "soy" },
@@ -54,68 +53,79 @@ const CustomizationModal = ({ visible, onClose, onAddToCart, product }) => {
   ];
 
   // State to keep track of selected options
-  const [selectedMilk, setSelectedMilk] = React.useState(
-    product?.milkType || milkOptions[0]?.value
-  );
-
-  const [selectedAddOns, setSelectedAddOns] = React.useState(
-    addOnOptions.reduce((acc, option) => {
-      acc[option.value] = product?.addOns?.[option.value] || 0; // Use optional chaining
+  const [customization, setCustomization] = React.useState({
+    selectedMilk: product?.milkType || milkOptions[0]?.value,
+    selectedAddOns: addOnOptions.reduce((acc, option) => {
+      acc[option.value] = product?.addOns?.[option.value] || 0;
       return acc;
-    }, {})
-  );
+    }, {}),
+    selectedSugar: product?.sugarLevel || sugarLevels[0]?.value,
+    productQuantity: product?.quantity || 1,
+  });
 
-  const [selectedSugar, setSelectedSugar] = React.useState(
-    product?.sugarLevel || sugarLevels[0]?.value
-  );
-
-  const [productQuantity, setProductQuantity] = React.useState(
-    product?.quantity || 1
-  );
+  // Update state when product changes
+  useEffect(() => {
+    setCustomization({
+      selectedMilk: product?.milkType || milkOptions[0]?.value,
+      selectedAddOns: addOnOptions.reduce((acc, option) => {
+        acc[option.value] = product?.addOns?.[option.value] || 0;
+        return acc;
+      }, {}),
+      selectedSugar: product?.sugarLevel || sugarLevels[0]?.value,
+      productQuantity: product?.quantity || 1,
+    });
+  }, [product]);
 
   const handleAddToCart = () => {
-    const totalPrice = calculateTotalPrice(); // Get the calculated total price
+    const totalPrice = calculateTotalPrice();
     onAddToCart({
       ...product,
-      milkType: selectedMilk,
-      addOns: selectedAddOns,
-      sugarLevel: selectedSugar,
-      totalPrice, // Include total price instead of productPrice
-      quantity: productQuantity, // Include product quantity
+      milkType: customization.selectedMilk,
+      addOns: customization.selectedAddOns,
+      sugarLevel: customization.selectedSugar,
+      totalPrice,
+      quantity: customization.productQuantity,
     });
-    onClose(); // Close the modal after adding to cart
+    onClose();
   };
 
-  // Function to handle incrementing and decrementing add-on counts
   const updateAddOnCount = (value, increment) => {
-    setSelectedAddOns((prev) => {
-      const newCount = prev[value] + increment;
-      return { ...prev, [value]: newCount < 0 ? 0 : newCount }; // Prevent count from going below 0
+    setCustomization((prev) => {
+      const newCount = prev.selectedAddOns[value] + increment;
+      return {
+        ...prev,
+        selectedAddOns: {
+          ...prev.selectedAddOns,
+          [value]: newCount < 0 ? 0 : newCount,
+        },
+      };
     });
   };
 
-  // Calculate total price
   const calculateTotalPrice = () => {
-    let totalPrice = productPrice * productQuantity; // Base price multiplied by quantity
-    Object.keys(selectedAddOns).forEach((addOn) => {
+    let totalPrice = productPrice * customization.productQuantity;
+    Object.keys(customization.selectedAddOns).forEach((addOn) => {
       const addOnOption = addOnOptions.find((option) => option.value === addOn);
       if (addOnOption) {
-        const addOnPrice = addOnOption.price;
-        totalPrice += addOnPrice * selectedAddOns[addOn];
+        totalPrice +=
+          addOnOption.price *
+          customization.selectedAddOns[addOn] *
+          customization.productQuantity;
       }
     });
     return totalPrice;
   };
 
-  // Function to handle incrementing and decrementing the product quantity
   const updateProductQuantity = (increment) => {
-    setProductQuantity((prev) => {
-      const newQuantity = prev + increment;
-      return newQuantity < 1 ? 1 : newQuantity; // Prevent quantity from going below 1
+    setCustomization((prev) => {
+      const newQuantity = prev.productQuantity + increment;
+      return {
+        ...prev,
+        productQuantity: newQuantity < 1 ? 1 : newQuantity,
+      };
     });
   };
 
-  // Unified function for rendering option sections
   const renderOptionSection = (
     title,
     options,
@@ -136,7 +146,7 @@ const CustomizationModal = ({ visible, onClose, onAddToCart, product }) => {
                   <Text style={styles.controlButton}>-</Text>
                 </TouchableOpacity>
                 <Text style={styles.addOnCountText}>
-                  {selectedAddOns[option.value]}
+                  {customization.selectedAddOns[option.value]}
                 </Text>
                 <TouchableOpacity
                   onPress={() => updateAddOnCount(option.value, 1)}
@@ -179,32 +189,31 @@ const CustomizationModal = ({ visible, onClose, onAddToCart, product }) => {
               resizeMode="cover"
             />
           )}
-
-          {/* Updated Title Section */}
           <View style={styles.titleContainer}>
             <Text style={styles.title}>{productName}</Text>
             <Text style={styles.price}>₱{productPrice}</Text>
           </View>
-
-          {/* Description Below the Title */}
           <Text style={styles.description}>{productDescription}</Text>
-
-          {/* Render sections */}
           {renderOptionSection(
             "Milk Option",
             milkOptions,
-            setSelectedMilk,
-            selectedMilk
+            (value) =>
+              setCustomization((prev) => ({ ...prev, selectedMilk: value })),
+            customization.selectedMilk
           )}
-          {renderOptionSection("Add Ons", addOnOptions, null, selectedAddOns)}
+          {renderOptionSection(
+            "Add Ons",
+            addOnOptions,
+            null,
+            customization.selectedAddOns
+          )}
           {renderOptionSection(
             "Sugar Level",
             sugarLevels,
-            setSelectedSugar,
-            selectedSugar
+            (value) =>
+              setCustomization((prev) => ({ ...prev, selectedSugar: value })),
+            customization.selectedSugar
           )}
-
-          {/* Quantity Section */}
           <View style={[styles.optionContainer, styles.shadowStyle]}>
             <View style={styles.quantityHeader}>
               <Text style={styles.optionTitle}>Quantity</Text>
@@ -212,7 +221,9 @@ const CustomizationModal = ({ visible, onClose, onAddToCart, product }) => {
                 <TouchableOpacity onPress={() => updateProductQuantity(-1)}>
                   <Text style={styles.controlButton}>-</Text>
                 </TouchableOpacity>
-                <Text style={styles.addOnCountText}>{productQuantity}</Text>
+                <Text style={styles.addOnCountText}>
+                  {customization.productQuantity}
+                </Text>
                 <TouchableOpacity onPress={() => updateProductQuantity(1)}>
                   <Text style={styles.controlButton}>+</Text>
                 </TouchableOpacity>
@@ -236,7 +247,6 @@ const CustomizationModal = ({ visible, onClose, onAddToCart, product }) => {
     </Modal>
   );
 };
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
