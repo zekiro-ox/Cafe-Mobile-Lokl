@@ -502,7 +502,7 @@ const styles = StyleSheet.create({
   editButton: {
     padding: 10,
     backgroundColor: "#4f3830",
-    borderRadius: 15,
+    borderRadius: 30,
     flex: 1,
     marginRight: 5, // Add space between Edit and Remove buttons
   },
@@ -515,7 +515,7 @@ const styles = StyleSheet.create({
   removeButton: {
     padding: 10,
     backgroundColor: "#333",
-    borderRadius: 15, // Make it circular
+    borderRadius: 30, // Make it circular
     width: 40, // Adjust width for better look
     height: 40, // Adjust height for better look
     justifyContent: "center",
@@ -538,7 +538,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#4f3830", // Set the color for the checkout button
     paddingVertical: 10, // Adjust the vertical padding
     paddingHorizontal: 20, // Set the left and right padding to a smaller value
-    borderRadius: 15,
+    borderRadius: 30,
     alignItems: "center",
     width: 150, // Adjust the width to make it smaller
     alignSelf: "center", // Center the button within its container

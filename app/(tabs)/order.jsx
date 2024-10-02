@@ -241,7 +241,7 @@ const styles = StyleSheet.create({
   confirmButton: {
     padding: 15,
     backgroundColor: "#4f3830",
-    borderRadius: 15,
+    borderRadius: 30,
     alignItems: "center",
     marginVertical: 10,
   },
@@ -253,7 +253,7 @@ const styles = StyleSheet.create({
   doneButton: {
     padding: 15,
     backgroundColor: "#4f3830",
-    borderRadius: 15,
+    borderRadius: 30,
     alignItems: "center",
     marginTop: 10,
   },
@@ -288,7 +288,7 @@ const styles = StyleSheet.create({
   closeButton: {
     padding: 15,
     backgroundColor: "#333",
-    borderRadius: 15,
+    borderRadius: 30,
     alignItems: "center",
   },
   closeButtonText: {
