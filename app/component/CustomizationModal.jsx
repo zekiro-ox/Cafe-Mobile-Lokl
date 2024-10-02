@@ -351,7 +351,7 @@ const styles = StyleSheet.create({
   buttonText: {
     color: "#fff",
     textAlign: "center",
-    fontFamily: "Montserrat_400Regular",
+    fontFamily: "Montserrat_700Bold",
   },
   shadowStyle: {
     shadowColor: "#000",
