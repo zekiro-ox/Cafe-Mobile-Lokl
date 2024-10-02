@@ -248,14 +248,24 @@ const SearchBar = ({
                   selectedCartItems.includes(item.id)
                 );
 
+                // Prepare the selected items for the next screen, including customization details
+                const serializedItems = selectedItems.map((item) => ({
+                  ...item,
+                  totalPrice: item.totalPrice.toFixed(2), // Format price as a string
+                  addOns: item.addOns, // Include addOns if needed
+                  milkType: item.milkType, // Include other customizations like milk type
+                  sugarLevel: item.sugarLevel, // Include sugar level
+                }));
+
                 // Navigate to the Order screen with selected items and total price
                 router.push({
-                  pathname: "order", // Adjust to your order screen path
+                  pathname: "order",
                   params: {
-                    selectedItems, // Pass selected items directly
-                    totalPrice: totalPrice.toFixed(2), // Ensure totalPrice is formatted correctly
+                    selectedItems: JSON.stringify(serializedItems), // Stringify the items to pass in the URL params
+                    totalPrice: totalPrice.toFixed(2), // Pass the formatted total price
                   },
                 });
+
                 toggleModal(); // Close the modal
               }}
             >
@@ -405,7 +415,7 @@ const styles = StyleSheet.create({
     justifyContent: "flex-start",
     paddingVertical: 15,
     borderBottomWidth: 1,
-    borderBottomColor: "#eee",
+    borderBottomColor: "#4f3830",
     width: "100%",
   },
   cartItemImageContainer: {
