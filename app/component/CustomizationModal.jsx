@@ -19,14 +19,23 @@ import {
 
 const { height: screenHeight } = Dimensions.get("window");
 
-const CustomizationModal = ({ visible, onClose, onAddToCart, product }) => {
+const CustomizationModal = ({
+  visible,
+  onClose,
+  onAddToCart,
+  product = {}, // Default to an empty object
+  ingredients = [], // Default to an empty array
+}) => {
   if (!product) {
     return null; // Or handle it in a way that suits your app
   }
 
-  const productName = product.name || "Product"; // Default to "Product"
-  const productDescription = product.description || "No description available";
-  const productPrice = product.price || 0;
+  console.log("Product:", product);
+  console.log("Ingredients:", ingredients);
+
+  const productName = product.name ?? "Product"; // Use nullish coalescing
+  const productDescription = product.description ?? "No description available";
+  const productPrice = parseFloat(product.price) || 0;
 
   const [fontsLoaded] = useFonts({
     Montserrat_400Regular,
@@ -54,26 +63,25 @@ const CustomizationModal = ({ visible, onClose, onAddToCart, product }) => {
 
   // State to keep track of selected options
   const [customization, setCustomization] = React.useState({
-    selectedMilk: product?.milkType || milkOptions[0]?.value,
-    selectedAddOns: addOnOptions.reduce((acc, option) => {
-      acc[option.value] = product?.addOns?.[option.value] || 0;
+    selectedMilk: product?.milkType || "defaultMilk",
+    selectedAddOns: {}, // Initialize as needed
+    selectedSugar: product?.sugarLevel || "regular",
+    productQuantity: product?.quantity || 1,
+    selectedIngredients: ingredients.reduce((acc, ingredient) => {
+      acc[ingredient.name] = 0; // Initialize with 0 quantity
       return acc;
     }, {}),
-    selectedSugar: product?.sugarLevel || sugarLevels[0]?.value,
-    productQuantity: product?.quantity || 1,
   });
 
   // Update state when product changes
   useEffect(() => {
-    setCustomization({
-      selectedMilk: product?.milkType || milkOptions[0]?.value,
-      selectedAddOns: addOnOptions.reduce((acc, option) => {
-        acc[option.value] = product?.addOns?.[option.value] || 0;
-        return acc;
-      }, {}),
-      selectedSugar: product?.sugarLevel || sugarLevels[0]?.value,
+    setCustomization((prev) => ({
+      ...prev,
+      selectedMilk: product?.milkType || "defaultMilk",
+      selectedAddOns: {}, // Update as needed
+      selectedSugar: product?.sugarLevel || "regular",
       productQuantity: product?.quantity || 1,
-    });
+    }));
   }, [product]);
 
   const handleAddToCart = () => {
@@ -85,6 +93,7 @@ const CustomizationModal = ({ visible, onClose, onAddToCart, product }) => {
       sugarLevel: customization.selectedSugar,
       totalPrice,
       quantity: customization.productQuantity,
+      ingredients: customization.selectedIngredients, // Include selected ingredients
     });
     onClose();
   };
@@ -113,6 +122,17 @@ const CustomizationModal = ({ visible, onClose, onAddToCart, product }) => {
           customization.productQuantity;
       }
     });
+    Object.keys(customization.selectedIngredients).forEach((ingredient) => {
+      const ingredientPrice = ingredients.find(
+        (ing) => ing.name === ingredient
+      )?.price;
+      if (ingredientPrice) {
+        totalPrice +=
+          ingredientPrice *
+          customization.selectedIngredients[ingredient] *
+          customization.productQuantity;
+      }
+    });
     return totalPrice;
   };
 
@@ -122,6 +142,19 @@ const CustomizationModal = ({ visible, onClose, onAddToCart, product }) => {
       return {
         ...prev,
         productQuantity: newQuantity < 1 ? 1 : newQuantity,
+      };
+    });
+  };
+
+  const updateIngredientQuantity = (ingredientName, increment) => {
+    setCustomization((prev) => {
+      const newQuantity = prev.selectedIngredients[ingredientName] + increment;
+      return {
+        ...prev,
+        selectedIngredients: {
+          ...prev.selectedIngredients,
+          [ingredientName]: newQuantity < 0 ? 0 : newQuantity,
+        },
       };
     });
   };
@@ -177,6 +210,40 @@ const CustomizationModal = ({ visible, onClose, onAddToCart, product }) => {
     </View>
   );
 
+  const renderIngredientsSection = () => (
+    <View style={[styles.optionContainer, styles.shadowStyle]}>
+      <Text style={styles.optionTitle}>Ingredients</Text>
+      {ingredients.length > 0 ? (
+        ingredients.map((ingredient, index) => (
+          <View key={index} style={styles.addOnContainer}>
+            <Text style={styles.radioButtonText}>{ingredient.name}</Text>
+            <Text style={styles.addOnPriceText}>₱{ingredient.price}</Text>
+            <Text style={styles.radioButtonText}>
+              Recommended Amount: {ingredient.recommendedAmount}
+            </Text>
+            <View style={styles.addOnControls}>
+              <TouchableOpacity
+                onPress={() => updateIngredientQuantity(ingredient.name, -1)}
+              >
+                <Text style={styles.controlButton}>-</Text>
+              </TouchableOpacity>
+              <Text style={styles.addOnCountText}>
+                {customization.selectedIngredients[ingredient.name]}
+              </Text>
+              <TouchableOpacity
+                onPress={() => updateIngredientQuantity(ingredient.name, 1)}
+              >
+                <Text style={styles.controlButton}>+</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        ))
+      ) : (
+        <Text>No ingredients available.</Text>
+      )}
+    </View>
+  );
+
   return (
     <Modal visible={visible} animationType="slide">
       <SafeAreaView style={styles.container}>
@@ -184,7 +251,7 @@ const CustomizationModal = ({ visible, onClose, onAddToCart, product }) => {
         <ScrollView contentContainerStyle={styles.scrollContainer}>
           {product.image && (
             <Image
-              source={product.image}
+              source={{ uri: product.image }} // Ensure this is the correct way to access the image
               style={styles.productImage}
               resizeMode="cover"
             />
@@ -194,6 +261,8 @@ const CustomizationModal = ({ visible, onClose, onAddToCart, product }) => {
             <Text style={styles.price}>₱{productPrice}</Text>
           </View>
           <Text style={styles.description}>{productDescription}</Text>
+
+          {renderIngredientsSection()}
           {renderOptionSection(
             "Milk Option",
             milkOptions,
