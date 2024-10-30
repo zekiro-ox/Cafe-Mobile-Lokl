@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   View,
   Text,
@@ -32,6 +32,7 @@ const RadioButton = ({ selected, onPress }) => {
     </TouchableOpacity>
   );
 };
+
 const SearchBar = ({
   cartCount,
   searchQuery,
@@ -46,9 +47,8 @@ const SearchBar = ({
   const [customizationProduct, setCustomizationProduct] = useState(null);
   const [isCustomizationModalVisible, setCustomizationModalVisible] =
     useState(false);
-  const [totalPrice, setTotalPrice] = useState(0);
 
-  const router = useRouter(); // Use useRouter for navigation
+  const router = useRouter();
 
   const toggleDropdown = () => {
     setIsDropdownVisible(!isDropdownVisible);
@@ -67,24 +67,15 @@ const SearchBar = ({
     Montserrat_700Bold,
   });
 
-  const calculateTotalPrice = () => {
-    const total = cartItems.reduce((sum, item) => {
+  const totalPrice = useMemo(() => {
+    return cartItems.reduce((sum, item) => {
       const itemTotalPrice = item.totalPrice;
       return sum + (selectedCartItems.includes(item.id) ? itemTotalPrice : 0);
     }, 0);
-    setTotalPrice(total);
-  };
-
-  useEffect(() => {
-    calculateTotalPrice();
   }, [cartItems, selectedCartItems]);
 
   const renderCartItem = ({ item }) => {
-    const milkType = item.milkType;
-    const addOns = Object.keys(item.addOns)
-      .map((addOn) => `${item.addOns[addOn]} x ${addOn.replace("_", " ")}`)
-      .join(", ");
-    const sugarLevel = item.sugarLevel;
+    const ingredients = item.ingredients || {};
     const isSelected = selectedCartItems.includes(item.id);
 
     return (
@@ -97,7 +88,6 @@ const SearchBar = ({
               : [...selectedCartItems, item.id];
 
             setSelectedCartItems(newSelectedCartItems);
-            calculateTotalPrice();
           }}
         />
         <View style={styles.cartItemImageContainer}>
@@ -114,15 +104,16 @@ const SearchBar = ({
             <Text style={styles.cartItemCustomizationTitle}>
               Customization:
             </Text>
-            <Text style={styles.cartItemCustomization}>Milk: {milkType}</Text>
-            {addOns && (
+            {Object.keys(ingredients).length > 0 && (
               <Text style={styles.cartItemCustomization}>
-                Add Ons: {addOns}
+                Ingredients:{" "}
+                {Object.keys(ingredients)
+                  .map(
+                    (ingredient) => `${ingredients[ingredient]} x ${ingredient}`
+                  )
+                  .join(", ")}
               </Text>
             )}
-            <Text style={styles.cartItemCustomization}>
-              Sugar Level: {sugarLevel}
-            </Text>
           </View>
           <View style={styles.cartItemQuantityContainer}>
             <Text style={styles.cartItemCustomization}>
@@ -133,7 +124,17 @@ const SearchBar = ({
             <TouchableOpacity
               style={styles.editButton}
               onPress={() => {
-                setCustomizationProduct(item);
+                const formattedIngredients = Object.keys(ingredients).map(
+                  (ingredient) => ({
+                    name: ingredient,
+                    price: ingredients[ingredient],
+                  })
+                );
+
+                setCustomizationProduct({
+                  ...item,
+                  ingredients: formattedIngredients,
+                });
                 toggleCustomizationModal();
               }}
             >
@@ -146,7 +147,6 @@ const SearchBar = ({
                   (cartItem) => cartItem.id !== item.id
                 );
                 setCartItems(updatedCartItems);
-                calculateTotalPrice(); // Recalculate total price after removing item
               }}
             >
               <Text style={styles.removeButtonText}>X</Text>
@@ -243,30 +243,25 @@ const SearchBar = ({
             <TouchableOpacity
               style={styles.checkoutButton}
               onPress={() => {
-                // Filter the cart items based on selectedCartItems
                 const selectedItems = cartItems.filter((item) =>
                   selectedCartItems.includes(item.id)
                 );
 
-                // Prepare the selected items for the next screen, including customization details
                 const serializedItems = selectedItems.map((item) => ({
                   ...item,
-                  totalPrice: item.totalPrice.toFixed(2), // Format price as a string
-                  addOns: item.addOns, // Include addOns if needed
-                  milkType: item.milkType, // Include other customizations like milk type
-                  sugarLevel: item.sugarLevel, // Include sugar level
+                  totalPrice: item.totalPrice.toFixed(2),
+                  ingredients: item.ingredients,
                 }));
 
-                // Navigate to the Order screen with selected items and total price
                 router.push({
                   pathname: "order",
                   params: {
-                    selectedItems: JSON.stringify(serializedItems), // Stringify the items to pass in the URL params
-                    totalPrice: totalPrice.toFixed(2), // Pass the formatted total price
+                    selectedItems: JSON.stringify(serializedItems),
+                    totalPrice: totalPrice.toFixed(2),
                   },
                 });
 
-                toggleModal(); // Close the modal
+                toggleModal();
               }}
             >
               <Text style={styles.checkoutButtonText}>Checkout</Text>

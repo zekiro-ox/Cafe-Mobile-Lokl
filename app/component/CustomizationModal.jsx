@@ -23,18 +23,14 @@ const CustomizationModal = ({
   visible,
   onClose,
   onAddToCart,
-  product = {}, // Default to an empty object
-  ingredients = [], // Default to an empty array
+  product = {},
+  ingredients = [],
 }) => {
   if (!product) {
-    return null; // Or handle it in a way that suits your app
+    return null; // Or render a loading state or an error message
   }
-
-  console.log("Product:", product);
-  console.log("Ingredients:", ingredients);
-
-  const productName = product.name ?? "Product"; // Use nullish coalescing
-  const productDescription = product.description ?? "No description available";
+  const productName = product.name || "Product";
+  const productDescription = product.description || "No description available";
   const productPrice = parseFloat(product.price) || 0;
 
   const [fontsLoaded] = useFonts({
@@ -42,70 +38,59 @@ const CustomizationModal = ({
     Montserrat_700Bold,
   });
 
-  // Default options for customizations
-  const milkOptions = [
-    { label: "Almond Milk", value: "almond" },
-    { label: "Soy Milk", value: "soy" },
-  ];
-
-  const addOnOptions = [
-    { label: "Espresso Shots", value: "espresso_shots", price: 10 },
-    { label: "Milk", value: "milk", price: 5 },
-    { label: "Dark Chocolate", value: "dark_chocolate", price: 15 },
-    { label: "Chocolate", value: "chocolate", price: 10 },
-  ];
-
-  const sugarLevels = [
-    { label: "No Sugar", value: "none" },
-    { label: "Regular Sugar", value: "regular" },
-    { label: "Less Sugar", value: "less" },
-  ];
-
-  // State to keep track of selected options
   const [customization, setCustomization] = React.useState({
-    selectedMilk: product?.milkType || "defaultMilk",
-    selectedAddOns: {}, // Initialize as needed
-    selectedSugar: product?.sugarLevel || "regular",
-    productQuantity: product?.quantity || 1,
-    selectedIngredients: ingredients.reduce((acc, ingredient) => {
-      acc[ingredient.name] = 0; // Initialize with 0 quantity
-      return acc;
-    }, {}),
+    productQuantity: 1,
+    selectedIngredients: {},
   });
 
-  // Update state when product changes
   useEffect(() => {
-    setCustomization((prev) => ({
-      ...prev,
-      selectedMilk: product?.milkType || "defaultMilk",
-      selectedAddOns: {}, // Update as needed
-      selectedSugar: product?.sugarLevel || "regular",
-      productQuantity: product?.quantity || 1,
-    }));
-  }, [product]);
+    if (visible) {
+      const initialIngredients = Array.isArray(ingredients)
+        ? ingredients.reduce((acc, ingredient) => {
+            if (ingredient && ingredient.name) {
+              acc[ingredient.name] = 0; // Initialize with 0 quantity
+            }
+            return acc;
+          }, {})
+        : {};
+
+      setCustomization((prevCustomization) => {
+        // Only update if necessary
+        if (
+          prevCustomization.productQuantity !== (product?.quantity || 1) ||
+          JSON.stringify(prevCustomization.selectedIngredients) !==
+            JSON.stringify(initialIngredients)
+        ) {
+          return {
+            productQuantity: product?.quantity || 1,
+            selectedIngredients: initialIngredients,
+          };
+        }
+        return prevCustomization; // Return previous state if no change
+      });
+    }
+  }, [visible, product, ingredients]);
 
   const handleAddToCart = () => {
     const totalPrice = calculateTotalPrice();
     onAddToCart({
       ...product,
-      milkType: customization.selectedMilk,
-      addOns: customization.selectedAddOns,
-      sugarLevel: customization.selectedSugar,
       totalPrice,
       quantity: customization.productQuantity,
-      ingredients: customization.selectedIngredients, // Include selected ingredients
+      ingredients: customization.selectedIngredients,
     });
     onClose();
   };
 
-  const updateAddOnCount = (value, increment) => {
+  const updateIngredientQuantity = (ingredientName, increment) => {
     setCustomization((prev) => {
-      const newCount = prev.selectedAddOns[value] + increment;
+      const newQuantity =
+        (prev.selectedIngredients[ingredientName] || 0) + increment;
       return {
         ...prev,
-        selectedAddOns: {
-          ...prev.selectedAddOns,
-          [value]: newCount < 0 ? 0 : newCount,
+        selectedIngredients: {
+          ...prev.selectedIngredients,
+          [ingredientName]: Math.max(newQuantity, 0), // Ensure quantity doesn't go below 0
         },
       };
     });
@@ -113,15 +98,7 @@ const CustomizationModal = ({
 
   const calculateTotalPrice = () => {
     let totalPrice = productPrice * customization.productQuantity;
-    Object.keys(customization.selectedAddOns).forEach((addOn) => {
-      const addOnOption = addOnOptions.find((option) => option.value === addOn);
-      if (addOnOption) {
-        totalPrice +=
-          addOnOption.price *
-          customization.selectedAddOns[addOn] *
-          customization.productQuantity;
-      }
-    });
+
     Object.keys(customization.selectedIngredients).forEach((ingredient) => {
       const ingredientPrice = ingredients.find(
         (ing) => ing.name === ingredient
@@ -129,10 +106,11 @@ const CustomizationModal = ({
       if (ingredientPrice) {
         totalPrice +=
           ingredientPrice *
-          customization.selectedIngredients[ingredient] *
+          (customization.selectedIngredients[ingredient] || 0) *
           customization.productQuantity;
       }
     });
+
     return totalPrice;
   };
 
@@ -141,103 +119,53 @@ const CustomizationModal = ({
       const newQuantity = prev.productQuantity + increment;
       return {
         ...prev,
-        productQuantity: newQuantity < 1 ? 1 : newQuantity,
+        productQuantity: Math.max(newQuantity, 1), // Ensure quantity is at least 1
       };
     });
   };
-
-  const updateIngredientQuantity = (ingredientName, increment) => {
-    setCustomization((prev) => {
-      const newQuantity = prev.selectedIngredients[ingredientName] + increment;
-      return {
-        ...prev,
-        selectedIngredients: {
-          ...prev.selectedIngredients,
-          [ingredientName]: newQuantity < 0 ? 0 : newQuantity,
-        },
-      };
-    });
-  };
-
-  const renderOptionSection = (
-    title,
-    options,
-    handleSelection,
-    selectedValue
-  ) => (
-    <View style={[styles.optionContainer, styles.shadowStyle]}>
-      <Text style={styles.optionTitle}>{title}</Text>
-      {title === "Add Ons"
-        ? options.map((option) => (
-            <View key={option.value} style={styles.addOnContainer}>
-              <Text style={styles.radioButtonText}>{option.label}</Text>
-              <Text style={styles.addOnPriceText}>₱{option.price}</Text>
-              <View style={styles.addOnControls}>
-                <TouchableOpacity
-                  onPress={() => updateAddOnCount(option.value, -1)}
-                >
-                  <Text style={styles.controlButton}>-</Text>
-                </TouchableOpacity>
-                <Text style={styles.addOnCountText}>
-                  {customization.selectedAddOns[option.value]}
-                </Text>
-                <TouchableOpacity
-                  onPress={() => updateAddOnCount(option.value, 1)}
-                >
-                  <Text style={styles.controlButton}>+</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          ))
-        : options.map((option) => (
-            <TouchableOpacity
-              key={option.value}
-              style={styles.radioButtonContainer}
-              onPress={() => handleSelection(option.value)}
-            >
-              <Text style={styles.radioButtonText}>{option.label}</Text>
-              {title !== "Add Ons" && (
-                <View
-                  style={[
-                    styles.radioButton,
-                    selectedValue === option.value &&
-                      styles.selectedRadioButton,
-                  ]}
-                />
-              )}
-            </TouchableOpacity>
-          ))}
-    </View>
-  );
 
   const renderIngredientsSection = () => (
     <View style={[styles.optionContainer, styles.shadowStyle]}>
       <Text style={styles.optionTitle}>Ingredients</Text>
-      {ingredients.length > 0 ? (
-        ingredients.map((ingredient, index) => (
-          <View key={index} style={styles.addOnContainer}>
-            <Text style={styles.radioButtonText}>{ingredient.name}</Text>
-            <Text style={styles.addOnPriceText}>₱{ingredient.price}</Text>
-            <Text style={styles.radioButtonText}>
-              Recommended Amount: {ingredient.recommendedAmount}
-            </Text>
-            <View style={styles.addOnControls}>
-              <TouchableOpacity
-                onPress={() => updateIngredientQuantity(ingredient.name, -1)}
-              >
-                <Text style={styles.controlButton}>-</Text>
-              </TouchableOpacity>
-              <Text style={styles.addOnCountText}>
-                {customization.selectedIngredients[ingredient.name]}
-              </Text>
-              <TouchableOpacity
-                onPress={() => updateIngredientQuantity(ingredient.name, 1)}
-              >
-                <Text style={styles.controlButton}>+</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        ))
+      {Array.isArray(ingredients) && ingredients.length > 0 ? (
+        ingredients.map((ingredient, index) => {
+          if (
+            ingredient &&
+            ingredient.name &&
+            ingredient.price &&
+            ingredient.recommendedAmount
+          ) {
+            return (
+              <View key={index} style={styles.addOnContainer}>
+                <Text style={styles.radioButtonText}>{ingredient.name}</Text>
+                <Text style={styles.addOnPriceText}>₱{ingredient.price}</Text>
+                <Text style={styles.radioButtonText}>
+                  Recommended Amount: {ingredient.recommendedAmount}
+                </Text>
+                <View style={styles.addOnControls}>
+                  <TouchableOpacity
+                    onPress={() =>
+                      updateIngredientQuantity(ingredient.name, -1)
+                    }
+                  >
+                    <Text style={styles.controlButton}>-</Text>
+                  </TouchableOpacity>
+                  <Text style={styles.addOnCountText}>
+                    {customization.selectedIngredients[ingredient.name] || 0}
+                  </Text>
+                  <TouchableOpacity
+                    onPress={() => updateIngredientQuantity(ingredient.name, 1)}
+                  >
+                    <Text style={styles.controlButton}>+</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            );
+          } else {
+            console.warn(`Invalid ingredient at index ${index}:`, ingredient);
+            return null;
+          }
+        })
       ) : (
         <Text>No ingredients available.</Text>
       )}
@@ -251,7 +179,7 @@ const CustomizationModal = ({
         <ScrollView contentContainerStyle={styles.scrollContainer}>
           {product.image && (
             <Image
-              source={{ uri: product.image }} // Ensure this is the correct way to access the image
+              source={{ uri: product.image }}
               style={styles.productImage}
               resizeMode="cover"
             />
@@ -263,26 +191,7 @@ const CustomizationModal = ({
           <Text style={styles.description}>{productDescription}</Text>
 
           {renderIngredientsSection()}
-          {renderOptionSection(
-            "Milk Option",
-            milkOptions,
-            (value) =>
-              setCustomization((prev) => ({ ...prev, selectedMilk: value })),
-            customization.selectedMilk
-          )}
-          {renderOptionSection(
-            "Add Ons",
-            addOnOptions,
-            null,
-            customization.selectedAddOns
-          )}
-          {renderOptionSection(
-            "Sugar Level",
-            sugarLevels,
-            (value) =>
-              setCustomization((prev) => ({ ...prev, selectedSugar: value })),
-            customization.selectedSugar
-          )}
+
           <View style={[styles.optionContainer, styles.shadowStyle]}>
             <View style={styles.quantityHeader}>
               <Text style={styles.optionTitle}>Quantity</Text>

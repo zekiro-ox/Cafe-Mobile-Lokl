@@ -18,6 +18,8 @@ import CheckBox from "react-native-check-box";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, Link } from "expo-router"; // Import useRouter
 import CustomAlert from "../component/CustomeAlert";
+import { auth } from "../config/firebase"; // Import the auth object from your firebase config
+import { signInWithEmailAndPassword } from "firebase/auth"; // Import the signIn function
 
 export default function SignIn() {
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
@@ -27,7 +29,6 @@ export default function SignIn() {
   const [loading, setLoading] = useState(false);
   const [showCustomAlert, setShowCustomAlert] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
-  // State to handle loading
 
   const [fontsLoaded] = useFonts({
     Montserrat_400Regular,
@@ -40,24 +41,21 @@ export default function SignIn() {
     return <ActivityIndicator size="large" color="#675148" />;
   }
 
-  const handleSignIn = () => {
+  const handleSignIn = async () => {
     setLoading(true);
 
-    // Dummy credentials
-    const dummyEmail = "user@example.com";
-    const dummyPassword = "password";
-
-    // Simple authentication check
-    if (email === dummyEmail && password === dummyPassword) {
+    try {
+      // Use Firebase Authentication to sign in
+      await signInWithEmailAndPassword(auth, email, password);
       setLoading(false);
       setSuccessMessage("Logged in successfully!");
       setShowCustomAlert(true);
       // Navigate to home screen using router
       router.replace("/home");
-    } else {
+    } catch (error) {
       setLoading(false);
       // Show error message
-      Alert.alert("Error", "Invalid email or password");
+      Alert.alert("Error", error.message);
     }
   };
 

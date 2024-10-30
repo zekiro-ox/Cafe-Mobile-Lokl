@@ -693,7 +693,8 @@ const styles = StyleSheet.create({
   productDescription: {
     fontSize: 12,
     color: "#666",
-    marginVertical: 5,
+    marginVertical: 12,
+    marginRight: 10,
     fontFamily: "Montserrat_400Regular",
   },
   productPrice: {
