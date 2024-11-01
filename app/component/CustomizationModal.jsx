@@ -24,19 +24,14 @@ const CustomizationModal = ({
   onClose,
   onAddToCart,
   product = {},
-  ingredients = [],
 }) => {
   if (!product) {
     return null; // Or render a loading state or an error message
   }
+
   const productName = product.name || "Product";
   const productDescription = product.description || "No description available";
   const productPrice = parseFloat(product.price) || 0;
-
-  const [fontsLoaded] = useFonts({
-    Montserrat_400Regular,
-    Montserrat_700Bold,
-  });
 
   const [customization, setCustomization] = React.useState({
     productQuantity: 1,
@@ -44,53 +39,62 @@ const CustomizationModal = ({
   });
 
   useEffect(() => {
-    if (visible) {
-      const initialIngredients = Array.isArray(ingredients)
-        ? ingredients.reduce((acc, ingredient) => {
-            if (ingredient && ingredient.name) {
-              acc[ingredient.name] = 0; // Initialize with 0 quantity
+    if (visible && product) {
+      const initialIngredients = Array.isArray(product.ingredients)
+        ? product.ingredients.reduce((acc, ingredient) => {
+            if (ingredient && ingredient.name && ingredient.price) {
+              acc[ingredient.name] = {
+                quantity: ingredient.quantity || 0, // Use the passed quantity
+                price: parseFloat(ingredient.price), // Store price
+                recommendedAmount: ingredient.recommendedAmount || "N/A", // Store recommended amount
+              };
+            } else {
+              console.warn("Invalid ingredient:", ingredient);
             }
             return acc;
           }, {})
         : {};
 
-      setCustomization((prevCustomization) => {
-        // Only update if necessary
-        if (
-          prevCustomization.productQuantity !== (product?.quantity || 1) ||
-          JSON.stringify(prevCustomization.selectedIngredients) !==
-            JSON.stringify(initialIngredients)
-        ) {
-          return {
-            productQuantity: product?.quantity || 1,
-            selectedIngredients: initialIngredients,
-          };
-        }
-        return prevCustomization; // Return previous state if no change
-      });
+      setCustomization((prevCustomization) => ({
+        productQuantity: product.quantity || prevCustomization.productQuantity,
+        selectedIngredients: initialIngredients,
+      }));
     }
-  }, [visible, product, ingredients]);
+  }, [visible, product]);
 
   const handleAddToCart = () => {
     const totalPrice = calculateTotalPrice();
+    const ingredientsToAdd = Object.entries(
+      customization.selectedIngredients
+    ).map(([name, { quantity, price }]) => ({
+      name,
+      quantity,
+      price,
+    }));
+
     onAddToCart({
       ...product,
       totalPrice,
       quantity: customization.productQuantity,
-      ingredients: customization.selectedIngredients,
+      ingredients: ingredientsToAdd, // Pass structured ingredients
     });
     onClose();
   };
 
   const updateIngredientQuantity = (ingredientName, increment) => {
     setCustomization((prev) => {
-      const newQuantity =
-        (prev.selectedIngredients[ingredientName] || 0) + increment;
+      const currentIngredient = prev.selectedIngredients[ingredientName] || {
+        quantity: 0,
+      };
+      const newQuantity = currentIngredient.quantity + increment;
       return {
         ...prev,
         selectedIngredients: {
           ...prev.selectedIngredients,
-          [ingredientName]: Math.max(newQuantity, 0), // Ensure quantity doesn't go below 0
+          [ingredientName]: {
+            ...currentIngredient,
+            quantity: Math.max(newQuantity, 0), // Ensure quantity doesn't go below 0
+          },
         },
       };
     });
@@ -100,15 +104,8 @@ const CustomizationModal = ({
     let totalPrice = productPrice * customization.productQuantity;
 
     Object.keys(customization.selectedIngredients).forEach((ingredient) => {
-      const ingredientPrice = ingredients.find(
-        (ing) => ing.name === ingredient
-      )?.price;
-      if (ingredientPrice) {
-        totalPrice +=
-          ingredientPrice *
-          (customization.selectedIngredients[ingredient] || 0) *
-          customization.productQuantity;
-      }
+      const { price, quantity } = customization.selectedIngredients[ingredient];
+      totalPrice += price * quantity * customization.productQuantity;
     });
 
     return totalPrice;
@@ -127,20 +124,20 @@ const CustomizationModal = ({
   const renderIngredientsSection = () => (
     <View style={[styles.optionContainer, styles.shadowStyle]}>
       <Text style={styles.optionTitle}>Ingredients</Text>
-      {Array.isArray(ingredients) && ingredients.length > 0 ? (
-        ingredients.map((ingredient, index) => {
-          if (
-            ingredient &&
-            ingredient.name &&
-            ingredient.price &&
-            ingredient.recommendedAmount
-          ) {
+      {Array.isArray(product.ingredients) && product.ingredients.length > 0 ? (
+        product.ingredients.map((ingredient, index) => {
+          if (ingredient && ingredient.name && ingredient.price) {
+            const ingredientPrice = parseFloat(ingredient.price); // Convert price to number
+            const recommendedAmount = ingredient.recommendedAmount; // Use the recommended amount from Firestore
+
             return (
               <View key={index} style={styles.addOnContainer}>
                 <Text style={styles.radioButtonText}>{ingredient.name}</Text>
-                <Text style={styles.addOnPriceText}>₱{ingredient.price}</Text>
+                <Text style={styles.addOnPriceText}>
+                  ₱{ingredientPrice.toFixed(2)}
+                </Text>
                 <Text style={styles.radioButtonText}>
-                  Recommended Amount: {ingredient.recommendedAmount}
+                  Recommended Amount: {recommendedAmount}
                 </Text>
                 <View style={styles.addOnControls}>
                   <TouchableOpacity
@@ -151,7 +148,8 @@ const CustomizationModal = ({
                     <Text style={styles.controlButton}>-</Text>
                   </TouchableOpacity>
                   <Text style={styles.addOnCountText}>
-                    {customization.selectedIngredients[ingredient.name] || 0}
+                    {customization.selectedIngredients[ingredient.name]
+                      ?.quantity || 0}
                   </Text>
                   <TouchableOpacity
                     onPress={() => updateIngredientQuantity(ingredient.name, 1)}
@@ -163,7 +161,7 @@ const CustomizationModal = ({
             );
           } else {
             console.warn(`Invalid ingredient at index ${index}:`, ingredient);
-            return null;
+            return null; // Skip invalid ingredient
           }
         })
       ) : (
@@ -171,7 +169,6 @@ const CustomizationModal = ({
       )}
     </View>
   );
-
   return (
     <Modal visible={visible} animationType="slide">
       <SafeAreaView style={styles.container}>

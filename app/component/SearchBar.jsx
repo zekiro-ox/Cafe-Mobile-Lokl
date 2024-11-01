@@ -75,7 +75,6 @@ const SearchBar = ({
   }, [cartItems, selectedCartItems]);
 
   const renderCartItem = ({ item }) => {
-    const ingredients = item.ingredients || {};
     const isSelected = selectedCartItems.includes(item.id);
 
     return (
@@ -91,7 +90,7 @@ const SearchBar = ({
           }}
         />
         <View style={styles.cartItemImageContainer}>
-          <Image source={item.image} style={styles.cartItemImage} />
+          <Image source={{ uri: item.image }} style={styles.cartItemImage} />
         </View>
         <View style={styles.cartItemDetailsContainer}>
           <View style={styles.cartItemDetails}>
@@ -104,15 +103,20 @@ const SearchBar = ({
             <Text style={styles.cartItemCustomizationTitle}>
               Customization:
             </Text>
-            {Object.keys(ingredients).length > 0 && (
+            {item.ingredients && item.ingredients.length > 0 ? (
               <Text style={styles.cartItemCustomization}>
                 Ingredients:{" "}
-                {Object.keys(ingredients)
+                {item.ingredients
                   .map(
-                    (ingredient) => `${ingredients[ingredient]} x ${ingredient}`
+                    (ingredient) =>
+                      `${ingredient.name} x ${
+                        ingredient.quantity
+                      } (₱${ingredient.price.toFixed(2)})`
                   )
                   .join(", ")}
               </Text>
+            ) : (
+              <Text>No ingredients available.</Text>
             )}
           </View>
           <View style={styles.cartItemQuantityContainer}>
@@ -124,16 +128,15 @@ const SearchBar = ({
             <TouchableOpacity
               style={styles.editButton}
               onPress={() => {
-                const formattedIngredients = Object.keys(ingredients).map(
-                  (ingredient) => ({
-                    name: ingredient,
-                    price: ingredients[ingredient],
-                  })
-                );
-
+                // Set the current product with its ingredients for editing
                 setCustomizationProduct({
                   ...item,
-                  ingredients: formattedIngredients,
+                  ingredients: item.ingredients.map((ing) => ({
+                    name: ing.name,
+                    quantity: ing.quantity || 0, // Ensure quantity is included
+                    price: ing.price, // Include price
+                    recommendedAmount: ing.recommendedAmount || "N/A", // Pass recommended amount from Firestore
+                  })),
                 });
                 toggleCustomizationModal();
               }}
@@ -275,10 +278,17 @@ const SearchBar = ({
         onClose={toggleCustomizationModal}
         onAddToCart={(updatedProduct) => {
           const updatedCartItems = cartItems.map((cartItem) =>
-            cartItem.id === updatedProduct.id ? updatedProduct : cartItem
+            cartItem.id === updatedProduct.id
+              ? {
+                  ...updatedProduct,
+                  ingredients: updatedProduct.ingredients.map((ingredient) => ({
+                    ...ingredient,
+                    recommendedAmount: ingredient.recommendedAmount, // Pass recommended amount to the cart
+                  })),
+                }
+              : cartItem
           );
           setCartItems(updatedCartItems);
-          calculateTotalPrice();
           toggleCustomizationModal();
         }}
         product={customizationProduct}
