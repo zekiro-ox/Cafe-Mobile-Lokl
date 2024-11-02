@@ -109,9 +109,7 @@ const SearchBar = ({
                 {item.ingredients
                   .map(
                     (ingredient) =>
-                      `${ingredient.name} x ${
-                        ingredient.quantity
-                      } (₱${ingredient.price.toFixed(2)})`
+                      `${ingredient.name} x ${ingredient.quantity}`
                   )
                   .join(", ")}
               </Text>
@@ -135,7 +133,7 @@ const SearchBar = ({
                     name: ing.name,
                     quantity: ing.quantity || 0, // Ensure quantity is included
                     price: ing.price, // Include price
-                    recommendedAmount: ing.recommendedAmount || "N/A", // Pass recommended amount from Firestore
+                    recommendedAmount: ing.recommendedAmount || 0, // Pass recommended amount from Firestore
                   })),
                 });
                 toggleCustomizationModal();
@@ -251,9 +249,15 @@ const SearchBar = ({
                 );
 
                 const serializedItems = selectedItems.map((item) => ({
-                  ...item,
-                  totalPrice: item.totalPrice.toFixed(2),
-                  ingredients: item.ingredients,
+                  id: item.id, // Include the ID if needed
+                  name: item.name, // Include the name
+                  totalPrice: item.totalPrice.toFixed(2), // Total price
+                  ingredients: item.ingredients.map((ingredient) => ({
+                    name: ingredient.name,
+                    quantity: ingredient.quantity,
+                    price: ingredient.price,
+                    // Remove milkType, sugarLevel, and addOns from here
+                  })),
                 }));
 
                 router.push({

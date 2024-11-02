@@ -14,6 +14,7 @@ import {
   Montserrat_400Regular,
   Montserrat_700Bold,
 } from "@expo-google-fonts/montserrat";
+import PayPalPayment from "../component/PaypalPayment";
 
 const Order = () => {
   const router = useRouter();
@@ -46,6 +47,7 @@ const Order = () => {
   const [orderInProgress, setOrderInProgress] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
   const [orderItems, setOrderItems] = useState([]);
+  const [isPayPalVisible, setIsPayPalVisible] = useState(false);
 
   useEffect(() => {
     if (parsedItems.length > 0 && !confirmed) {
@@ -58,16 +60,11 @@ const Order = () => {
   const renderSelectedItem = ({ item }) => (
     <View style={styles.itemContainer}>
       <Text style={styles.itemName}>{item.name}</Text>
-      <Text style={styles.itemCustomization}>
-        Milk Type: {item.milkType}, Sugar Level: {item.sugarLevel}
-      </Text>
-      {item.addOns && (
+      {item.ingredients && item.ingredients.length > 0 && (
         <Text style={styles.itemCustomization}>
-          Add Ons:{" "}
-          {Object.keys(item.addOns)
-            .map(
-              (addOn) => `${item.addOns[addOn]} x ${addOn.replace("_", " ")}`
-            )
+          Ingredients:{" "}
+          {item.ingredients
+            .map((ingredient) => `${ingredient.name} x ${ingredient.quantity}`)
             .join(", ")}
         </Text>
       )}
@@ -77,7 +74,12 @@ const Order = () => {
 
   const handleConfirmPayment = () => {
     setIsModalVisible(false);
+    setIsPayPalVisible(true); // Show PayPal payment component
+  };
+
+  const handlePaymentSuccess = () => {
     setConfirmed(true);
+    setIsPayPalVisible(false);
   };
 
   const handleCancelOrder = () => {
@@ -85,15 +87,16 @@ const Order = () => {
     setOrderInProgress(false);
     setOrderItems([]);
     setConfirmed(false);
+    setIsPayPalVisible(false); // Hide PayPal payment component
     router.replace("order", { selectedItems: "[]", totalPrice: "0" });
   };
 
   const handleOrderDone = () => {
-    // Clear the order and show the "No Order" message
     setOrderInProgress(false);
     setOrderItems([]);
     setConfirmed(false);
     setIsModalVisible(false);
+    setIsPayPalVisible(false); // Hide PayPal payment component
     router.replace("order", { selectedItems: "[]", totalPrice: "0" });
   };
 
@@ -166,6 +169,13 @@ const Order = () => {
             </View>
           </View>
         </Modal>
+      )}
+      {isPayPalVisible && (
+        <PayPalPayment
+          amount={formattedTotalPrice}
+          onClose={handleOrderDone}
+          onSuccess={handlePaymentSuccess}
+        />
       )}
     </SafeAreaView>
   );

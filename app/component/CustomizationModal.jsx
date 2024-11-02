@@ -43,10 +43,17 @@ const CustomizationModal = ({
       const initialIngredients = Array.isArray(product.ingredients)
         ? product.ingredients.reduce((acc, ingredient) => {
             if (ingredient && ingredient.name && ingredient.price) {
+              // Check if recommendedAmount is a valid number before parsing
+              const recommendedAmount = isNaN(
+                parseFloat(ingredient.recommendedAmount)
+              )
+                ? ingredient.recommendedAmount
+                : parseFloat(ingredient.recommendedAmount);
+
               acc[ingredient.name] = {
                 quantity: ingredient.quantity || 0, // Use the passed quantity
                 price: parseFloat(ingredient.price), // Store price
-                recommendedAmount: ingredient.recommendedAmount || "N/A", // Store recommended amount
+                recommendedAmount: recommendedAmount || "N/A", // Store recommended amount or fallback
               };
             } else {
               console.warn("Invalid ingredient:", ingredient);
@@ -66,10 +73,11 @@ const CustomizationModal = ({
     const totalPrice = calculateTotalPrice();
     const ingredientsToAdd = Object.entries(
       customization.selectedIngredients
-    ).map(([name, { quantity, price }]) => ({
+    ).map(([name, { quantity, price, recommendedAmount }]) => ({
       name,
       quantity,
       price,
+      recommendedAmount,
     }));
 
     onAddToCart({
@@ -128,7 +136,12 @@ const CustomizationModal = ({
         product.ingredients.map((ingredient, index) => {
           if (ingredient && ingredient.name && ingredient.price) {
             const ingredientPrice = parseFloat(ingredient.price); // Convert price to number
-            const recommendedAmount = ingredient.recommendedAmount; // Use the recommended amount from Firestore
+            const recommendedAmount = isNaN(
+              parseFloat(ingredient.recommendedAmount)
+            )
+              ? ingredient.recommendedAmount
+              : parseFloat(ingredient.recommendedAmount);
+            // Use the recommended amount from Firestore
 
             return (
               <View key={index} style={styles.addOnContainer}>
@@ -137,7 +150,11 @@ const CustomizationModal = ({
                   ₱{ingredientPrice.toFixed(2)}
                 </Text>
                 <Text style={styles.radioButtonText}>
-                  Recommended Amount: {recommendedAmount}
+                  Recommended Amount:{" "}
+                  {
+                    customization.selectedIngredients[ingredient.name]
+                      ?.recommendedAmount
+                  }
                 </Text>
                 <View style={styles.addOnControls}>
                   <TouchableOpacity
