@@ -252,13 +252,14 @@ const SearchBar = ({
                   id: item.id, // Include the ID if needed
                   name: item.name, // Include the name
                   totalPrice: item.totalPrice.toFixed(2), // Total price
+                  quantity: item.quantity, // Include product quantity
                   ingredients: item.ingredients.map((ingredient) => ({
                     name: ingredient.name,
-                    quantity: ingredient.quantity,
+                    quantity: ingredient.quantity, // Ensure ingredient quantity is included
                     price: ingredient.price,
-                    // Remove milkType, sugarLevel, and addOns from here
                   })),
                 }));
+                console.log("Serialized Items:", serializedItems);
 
                 router.push({
                   pathname: "order",

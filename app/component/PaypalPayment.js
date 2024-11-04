@@ -13,6 +13,10 @@ const PayPalPayment = ({ amount, onClose, onSuccess }) => {
   const [loading, setLoading] = useState(true);
   const [alertVisible, setAlertVisible] = useState(false);
   const [alertMessage, setAlertMessage] = useState("");
+  const [fontsLoaded] = useFonts({
+    Montserrat_400Regular,
+    Montserrat_700Bold,
+  });
 
   const getAccessToken = async () => {
     const response = await fetch(
@@ -55,8 +59,8 @@ const PayPalPayment = ({ amount, onClose, onSuccess }) => {
             },
           ],
           redirect_urls: {
-            return_url: "http://return-url.com",
-            cancel_url: "http://cancel-url.com",
+            return_url: "https://your-app-success-url.com/success",
+            cancel_url: "https://your-app-cancel-url.com/cancel",
           },
         }),
       }
@@ -99,9 +103,9 @@ const PayPalPayment = ({ amount, onClose, onSuccess }) => {
           style={{ flex: 1 }}
           source={{ uri: paymentUrl }}
           onNavigationStateChange={(navState) => {
-            if (navState.url.includes("return-url.com")) {
+            if (navState.url.includes("success")) {
               onPaymentSuccess();
-            } else if (navState.url.includes("cancel-url.com")) {
+            } else if (navState.url.includes("cancel")) {
               onPaymentCancel();
             }
           }}
