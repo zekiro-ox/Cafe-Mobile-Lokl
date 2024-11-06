@@ -59,8 +59,8 @@ const PayPalPayment = ({ amount, onClose, onSuccess }) => {
             },
           ],
           redirect_urls: {
-            return_url: "https://your-app-success-url.com/success",
-            cancel_url: "https://your-app-cancel-url.com/cancel",
+            return_url: "https://example.com/success",
+            cancel_url: "https://example.com/cancel",
           },
         }),
       }

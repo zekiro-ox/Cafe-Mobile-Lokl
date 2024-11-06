@@ -11,13 +11,23 @@ import {
   ScrollView,
   SafeAreaView,
 } from "react-native";
-import { useFonts } from "expo-font";
+import Toast from "react-native-toast-message"; // Import Toast
 import {
   Montserrat_400Regular,
   Montserrat_700Bold,
 } from "@expo-google-fonts/montserrat";
 
 const { height: screenHeight } = Dimensions.get("window");
+
+const toastConfig = {
+  info: ({ text1, text2 }) => (
+    <View style={styles.toastContainer}>
+      <Text style={styles.toastTitle}>{text1}</Text>
+      <Text style={styles.toastMessage}>{text2}</Text>
+    </View>
+  ),
+  // You can add more custom types (success, error, etc.) here
+};
 
 const CustomizationModal = ({
   visible,
@@ -38,12 +48,14 @@ const CustomizationModal = ({
     selectedIngredients: {},
   });
 
+  // New state to track alerted ingredients
+  const [alertedIngredients, setAlertedIngredients] = React.useState({});
+
   useEffect(() => {
     if (visible && product) {
       const initialIngredients = Array.isArray(product.ingredients)
         ? product.ingredients.reduce((acc, ingredient) => {
             if (ingredient && ingredient.name && ingredient.price) {
-              // Check if recommendedAmount is a valid number before parsing
               const recommendedAmount = isNaN(
                 parseFloat(ingredient.recommendedAmount)
               )
@@ -51,9 +63,9 @@ const CustomizationModal = ({
                 : parseFloat(ingredient.recommendedAmount);
 
               acc[ingredient.name] = {
-                quantity: ingredient.quantity || 0, // Use the passed quantity
-                price: parseFloat(ingredient.price), // Store price
-                recommendedAmount: recommendedAmount || "N/A", // Store recommended amount or fallback
+                quantity: ingredient.quantity || 0,
+                price: parseFloat(ingredient.price),
+                recommendedAmount: recommendedAmount || "N/A",
               };
             } else {
               console.warn("Invalid ingredient:", ingredient);
@@ -66,6 +78,9 @@ const CustomizationModal = ({
         productQuantity: product.quantity || prevCustomization.productQuantity,
         selectedIngredients: initialIngredients,
       }));
+
+      // Reset alerted ingredients when modal opens
+      setAlertedIngredients({});
     }
   }, [visible, product]);
 
@@ -84,7 +99,7 @@ const CustomizationModal = ({
       ...product,
       totalPrice,
       quantity: customization.productQuantity,
-      ingredients: ingredientsToAdd, // Pass structured ingredients
+      ingredients: ingredientsToAdd,
     });
     onClose();
   };
@@ -95,13 +110,37 @@ const CustomizationModal = ({
         quantity: 0,
       };
       const newQuantity = currentIngredient.quantity + increment;
+
+      // Show toast for recommended amount when increasing quantity
+      if (increment > 0 && !alertedIngredients[ingredientName]) {
+        const recommendedAmount = currentIngredient.recommendedAmount;
+
+        // Show toast message instead of alert
+        Toast.show({
+          text1: "Recommended Amount",
+          text2: `The recommended amount for ${ingredientName} is ${recommendedAmount}.`,
+          position: "top",
+          visibilityTime: 4000,
+          autoHide: true,
+          type: "info", // You can change this to 'success', 'error', etc.
+        });
+
+        // Use setTimeout to defer the state update to the next render cycle
+        setTimeout(() => {
+          setAlertedIngredients((prevAlerted) => ({
+            ...prevAlerted,
+            [ingredientName]: true,
+          }));
+        }, 0);
+      }
+
       return {
         ...prev,
         selectedIngredients: {
           ...prev.selectedIngredients,
           [ingredientName]: {
             ...currentIngredient,
-            quantity: Math.max(newQuantity, 0), // Ensure quantity doesn't go below 0
+            quantity: Math.max(newQuantity, 0),
           },
         },
       };
@@ -124,7 +163,7 @@ const CustomizationModal = ({
       const newQuantity = prev.productQuantity + increment;
       return {
         ...prev,
-        productQuantity: Math.max(newQuantity, 1), // Ensure quantity is at least 1
+        productQuantity: Math.max(newQuantity, 1),
       };
     });
   };
@@ -135,13 +174,12 @@ const CustomizationModal = ({
       {Array.isArray(product.ingredients) && product.ingredients.length > 0 ? (
         product.ingredients.map((ingredient, index) => {
           if (ingredient && ingredient.name && ingredient.price) {
-            const ingredientPrice = parseFloat(ingredient.price); // Convert price to number
+            const ingredientPrice = parseFloat(ingredient.price);
             const recommendedAmount = isNaN(
               parseFloat(ingredient.recommendedAmount)
             )
               ? ingredient.recommendedAmount
               : parseFloat(ingredient.recommendedAmount);
-            // Use the recommended amount from Firestore
 
             return (
               <View key={index} style={styles.addOnContainer}>
@@ -149,13 +187,7 @@ const CustomizationModal = ({
                 <Text style={styles.addOnPriceText}>
                   ₱{ingredientPrice.toFixed(2)}
                 </Text>
-                <Text style={styles.radioButtonText}>
-                  Recommended Amount:{" "}
-                  {
-                    customization.selectedIngredients[ingredient.name]
-                      ?.recommendedAmount
-                  }
-                </Text>
+
                 <View style={styles.addOnControls}>
                   <TouchableOpacity
                     onPress={() =>
@@ -186,6 +218,7 @@ const CustomizationModal = ({
       )}
     </View>
   );
+
   return (
     <Modal visible={visible} animationType="slide">
       <SafeAreaView style={styles.container}>
@@ -235,6 +268,7 @@ const CustomizationModal = ({
             </TouchableOpacity>
           </View>
         </ScrollView>
+        <Toast config={toastConfig} />
       </SafeAreaView>
     </Modal>
   );
@@ -383,6 +417,22 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+  },
+  toastContainer: {
+    backgroundColor: "#4f3830", // Background color of the toast
+    padding: 20,
+    borderRadius: 8,
+    margin: 10,
+  },
+  toastTitle: {
+    color: "#d1c2b4",
+    fontFamily: "Montserrat_700Bold",
+    fontSize: 16,
+  },
+  toastMessage: {
+    color: "#fff",
+    fontFamily: "Montserrat_400Regular",
+    fontSize: 14,
   },
 });
 
