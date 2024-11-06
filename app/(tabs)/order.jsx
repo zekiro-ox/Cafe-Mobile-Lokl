@@ -16,7 +16,14 @@ import {
 } from "@expo-google-fonts/montserrat";
 import PayPalPayment from "../component/PaypalPayment";
 import { db } from "../config/firebase"; // Adjust the path as necessary
-import { doc, setDoc, collection } from "firebase/firestore";
+import {
+  collection,
+  addDoc,
+  query,
+  where,
+  getDocs,
+  deleteDoc,
+} from "firebase/firestore"; // Import necessary Firestore functions
 import { getAuth } from "firebase/auth";
 
 const Order = () => {
@@ -83,9 +90,9 @@ const Order = () => {
   };
 
   const handlePaymentSuccess = async () => {
-    if (isPaymentProcessing) return; // Prevent multiple submissions
+    if (isPaymentProcessing) return;
 
-    setIsPaymentProcessing(true); // Set the flag to true
+    setIsPaymentProcessing(true);
 
     try {
       const auth = getAuth();
@@ -93,39 +100,37 @@ const Order = () => {
 
       if (!user) {
         console.error("No user is currently logged in.");
-        return; // Optionally, redirect to login or show an error
+        return;
       }
 
       const userId = user.uid;
 
-      // Prepare the order data
-      const orderData = {
-        orderID: orderItems.map((item) => ({
+      for (const item of orderItems) {
+        const orderData = {
+          uid: userId,
           productName: item.name,
-          quantity: item.quantity, // Use the product quantity from the cart
+          quantity: item.quantity || 1,
           ingredients: item.ingredients.map((ingredient) => ({
             name: ingredient.name,
             price: ingredient.price || 0,
-            quantity: ingredient.quantity || 0, // Use the quantity specified by the user
+            quantity: ingredient.quantity || 0,
           })),
-        })),
-        totalPrice: formattedTotalPrice,
-        createdAt: new Date(),
-      };
+          totalPrice: formattedTotalPrice,
+          createdAt: new Date(),
+        };
 
-      // Save the order to Firestore under the user's subcollection
-      const orderRef = doc(collection(db, "order", userId, "orders")); // Create a reference for the new order
-      await setDoc(orderRef, orderData); // Save the order data
+        await addDoc(collection(db, "order"), orderData);
+      }
 
       setConfirmed(true);
       setIsPayPalVisible(false);
     } catch (error) {
       console.error("Error saving order to Firestore:", error);
     } finally {
-      setIsPaymentProcessing(false); // Reset the flag after processing
+      setIsPaymentProcessing(false);
     }
-    console.log("Order Data:", orderData);
   };
+
   const handleCancelOrder = () => {
     setIsModalVisible(true);
     setOrderInProgress(false);
@@ -135,12 +140,38 @@ const Order = () => {
     router.replace("order", { selectedItems: "[]", totalPrice: "0" });
   };
 
-  const handleOrderDone = () => {
-    setOrderInProgress(false);
+  const handleOrderDone = async () => {
+    setOrderInProgress(true);
     setOrderItems([]);
     setConfirmed(false);
     setIsModalVisible(false);
     setIsPayPalVisible(false); // Hide PayPal payment component
+
+    const auth = getAuth();
+    const user = auth.currentUser;
+
+    if (!user) {
+      console.error("No user is currently logged in.");
+      return;
+    }
+
+    const userId = user.uid;
+
+    // Fetch the order data from the 'order' collection
+    const q = query(collection(db, "order"), where("uid", "==", userId));
+    const querySnapshot = await getDocs(q);
+
+    querySnapshot.forEach(async (doc) => {
+      const orderData = doc.data();
+
+      // Add the order to the 'history' collection
+      await addDoc(collection(db, "history"), orderData);
+
+      // Delete the order from the 'order' collection
+      await deleteDoc(doc.ref);
+    });
+
+    // After transferring the order, reset the state to show no orders
     router.replace("order", { selectedItems: "[]", totalPrice: "0" });
   };
 
