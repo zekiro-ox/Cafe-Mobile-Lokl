@@ -31,6 +31,8 @@ import { useRouter } from "expo-router";
 import * as Location from "expo-location"; // Adjust the path accordingly
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "../config/firebase";
+import { getAuth, signOut } from "firebase/auth";
+import AsyncStorage from "@react-native-async-storage/async-storage"; // Import Firebase Auth
 
 // Don't forget to export the products array if needed
 
@@ -361,11 +363,18 @@ const Home = () => {
       console.warn("Selected product is undefined");
     }
   };
-  const handleLogout = () => {
-    // Perform any necessary logout logic here (e.g., clearing user data)
+  const handleLogout = async () => {
+    const auth = getAuth(); // Get the Firebase Auth instance
+    try {
+      await signOut(auth);
+      await AsyncStorage.removeItem("userToken"); // Sign out the user
+      // Perform any necessary logout logic here (e.g., clearing user data)
 
-    // Navigate to the sign-in screen
-    router.replace("/sign-in"); // Ensure this path matches your sign-in route
+      // Navigate to the sign-in screen
+      router.replace("/sign-in"); // Ensure this path matches your sign-in route
+    } catch (error) {
+      console.error("Error signing out: ", error); // Handle any errors
+    }
   };
 
   const handleAddToCartWithCustomization = (customProduct) => {

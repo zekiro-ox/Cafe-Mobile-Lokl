@@ -16,6 +16,7 @@ import {
   Montserrat_400Regular,
   Montserrat_700Bold,
 } from "@expo-google-fonts/montserrat";
+import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 
 const { height: screenHeight } = Dimensions.get("window");
 
@@ -81,6 +82,16 @@ const CustomizationModal = ({
 
       // Reset alerted ingredients when modal opens
       setAlertedIngredients({});
+
+      // Show toast message when modal opens
+      Toast.show({
+        text1: "Customize your drinks!",
+        text2: "Press the recommended icon for best drinks!",
+        position: "top",
+        visibilityTime: 4000,
+        autoHide: true,
+        type: "info",
+      });
     }
   }, [visible, product]);
 
@@ -170,7 +181,37 @@ const CustomizationModal = ({
 
   const renderIngredientsSection = () => (
     <View style={[styles.optionContainer, styles.shadowStyle]}>
-      <Text style={styles.optionTitle}>Ingredients</Text>
+      <View style={styles.ingredientsHeader}>
+        <Text style={styles.optionTitle}>Ingredients</Text>
+        <TouchableOpacity
+          onPress={() => {
+            setCustomization((prev) => {
+              const updatedIngredients = { ...prev.selectedIngredients };
+              Object.keys(updatedIngredients).forEach((ingredientName) => {
+                const recommendedAmount =
+                  updatedIngredients[ingredientName].recommendedAmount;
+                updatedIngredients[ingredientName].quantity = recommendedAmount; // Set to recommended amount
+              });
+              return {
+                ...prev,
+                selectedIngredients: updatedIngredients,
+              };
+            });
+
+            // Show a toast message when the recommended icon is clicked
+            Toast.show({
+              text1: "Drinks Customized!",
+              text2: "Crafted to Perfection, Sip by Sip!",
+              position: "top",
+              visibilityTime: 4000,
+              autoHide: true,
+              type: "info",
+            });
+          }}
+        >
+          <MaterialIcons name="recommend" size={24} color="#4f3830" />
+        </TouchableOpacity>
+      </View>
       {Array.isArray(product.ingredients) && product.ingredients.length > 0 ? (
         product.ingredients.map((ingredient, index) => {
           if (ingredient && ingredient.name && ingredient.price) {
@@ -329,6 +370,11 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     marginVertical: 10,
   },
+  ingredientsHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center", // Center items vertically
+  },
   addOnControls: {
     flexDirection: "row",
     alignItems: "center",
@@ -433,6 +479,9 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontFamily: "Montserrat_400Regular",
     fontSize: 14,
+  },
+  recommendIcon: {
+    marginLeft: 10, // Add some spacing
   },
 });
 
