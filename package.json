@@ -37,7 +37,8 @@
     "react-native-web": "~0.19.10",
     "react-native-webview": "13.8.6",
     "react-radio-buttons": "^1.2.2",
-    "twrnc": "^4.5.1"
+    "twrnc": "^4.5.1",
+    "expo-updates": "~0.25.27"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",
