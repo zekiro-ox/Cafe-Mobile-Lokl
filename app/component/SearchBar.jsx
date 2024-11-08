@@ -13,25 +13,18 @@ import { Ionicons } from "@expo/vector-icons";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import Entypo from "@expo/vector-icons/Entypo";
+import AntDesign from "@expo/vector-icons/AntDesign";
 import {
   useFonts,
   Montserrat_400Regular,
   Montserrat_700Bold,
 } from "@expo-google-fonts/montserrat";
 import CustomizationModal from "./CustomizationModal";
+import ProfileModal from "./ProfileModal"; // Import the ProfileModal
 import { useRouter } from "expo-router";
-
-const RadioButton = ({ selected, onPress }) => {
-  return (
-    <TouchableOpacity onPress={onPress} style={styles.radioButtonContainer}>
-      <View
-        style={[styles.radioButton, selected && styles.radioButtonSelected]}
-      >
-        {selected && <View style={styles.radioButtonInner} />}
-      </View>
-    </TouchableOpacity>
-  );
-};
+import { getAuth } from "firebase/auth";
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "../config/firebase"; // Adjust the path as necessary
 
 const SearchBar = ({
   cartCount,
@@ -43,12 +36,46 @@ const SearchBar = ({
 }) => {
   const [isDropdownVisible, setIsDropdownVisible] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const [isProfileModalVisible, setProfileModalVisible] = useState(false);
   const [selectedCartItems, setSelectedCartItems] = useState([]);
   const [customizationProduct, setCustomizationProduct] = useState(null);
   const [isCustomizationModalVisible, setCustomizationModalVisible] =
     useState(false);
+  const [userProfile, setUserProfile] = useState(null); // State to hold user profile data
 
   const router = useRouter();
+
+  // Fetch user profile data
+  // Fetch user profile data
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      const auth = getAuth();
+      const user = auth.currentUser;
+
+      if (user) {
+        const userId = user.uid; // Get the current user's ID
+        const userDocRef = doc(db, "customer", userId); // Reference to the user document
+        const userDoc = await getDoc(userDocRef); // Fetch the document
+
+        if (userDoc.exists()) {
+          const userData = userDoc.data();
+          console.log("Fetched User Data:", userData); // Debugging line
+          setUserProfile({ id: userDoc.id, ...userData }); // Set user profile state
+        } else {
+          console.log("No such document!");
+        }
+      }
+    };
+
+    fetchUserProfile();
+  }, []);
+
+  const onUpdateProfile = (updatedProfile) => {
+    setUserProfile((prevProfile) => ({
+      ...prevProfile,
+      ...updatedProfile,
+    }));
+  };
 
   const toggleDropdown = () => {
     setIsDropdownVisible(!isDropdownVisible);
@@ -60,6 +87,10 @@ const SearchBar = ({
 
   const toggleCustomizationModal = () => {
     setCustomizationModalVisible(!isCustomizationModalVisible);
+  };
+
+  const toggleProfileModal = () => {
+    setProfileModalVisible(!isProfileModalVisible);
   };
 
   const [fontsLoaded] = useFonts({
@@ -126,14 +157,13 @@ const SearchBar = ({
             <TouchableOpacity
               style={styles.editButton}
               onPress={() => {
-                // Set the current product with its ingredients for editing
                 setCustomizationProduct({
                   ...item,
                   ingredients: item.ingredients.map((ing) => ({
                     name: ing.name,
-                    quantity: ing.quantity || 0, // Ensure quantity is included
-                    price: ing.price, // Include price
-                    recommendedAmount: ing.recommendedAmount || 0, // Pass recommended amount from Firestore
+                    quantity: ing.quantity || 0,
+                    price: ing.price,
+                    recommendedAmount: ing.recommendedAmount || 0,
                   })),
                 });
                 toggleCustomizationModal();
@@ -157,6 +187,7 @@ const SearchBar = ({
       </View>
     );
   };
+
   return (
     <View style={styles.container}>
       <View style={styles.searchBarContainer}>
@@ -193,6 +224,18 @@ const SearchBar = ({
 
         {isDropdownVisible && (
           <View style={styles.dropdownMenu}>
+            <TouchableOpacity
+              onPress={toggleProfileModal}
+              style={styles.dropdownItemContainer}
+            >
+              <AntDesign
+                name="profile"
+                size={16}
+                color="#737373"
+                style={styles.logoutIcon}
+              />
+              <Text style={styles.dropdownItem}>Profile</Text>
+            </TouchableOpacity>
             <TouchableOpacity
               onPress={onLogoutPress}
               style={styles.dropdownItemContainer}
@@ -231,7 +274,8 @@ const SearchBar = ({
                   data={cartItems}
                   keyExtractor={(item) => item.id.toString()}
                   renderItem={renderCartItem}
-                  scrollEnabled={true}
+                  scroll
+                  enabled={true}
                   style={{ maxHeight: 350 }}
                 />
               ) : (
@@ -249,13 +293,13 @@ const SearchBar = ({
                 );
 
                 const serializedItems = selectedItems.map((item) => ({
-                  id: item.id, // Include the ID if needed
-                  name: item.name, // Include the name
-                  totalPrice: item.totalPrice.toFixed(2), // Total price
-                  quantity: item.quantity, // Include product quantity
+                  id: item.id,
+                  name: item.name,
+                  totalPrice: item.totalPrice.toFixed(2),
+                  quantity: item.quantity,
                   ingredients: item.ingredients.map((ingredient) => ({
                     name: ingredient.name,
-                    quantity: ingredient.quantity, // Ensure ingredient quantity is included
+                    quantity: ingredient.quantity,
                     price: ingredient.price,
                   })),
                 }));
@@ -278,6 +322,13 @@ const SearchBar = ({
         </View>
       </Modal>
 
+      <ProfileModal
+        visible={isProfileModalVisible}
+        onClose={toggleProfileModal}
+        userProfile={userProfile || { name: "", email: "No email provided" }} // Ensure userProfile is an object
+        onUpdateProfile={onUpdateProfile} // Pass the function here
+      />
+
       <CustomizationModal
         visible={isCustomizationModalVisible}
         onClose={toggleCustomizationModal}
@@ -288,7 +339,7 @@ const SearchBar = ({
                   ...updatedProduct,
                   ingredients: updatedProduct.ingredients.map((ingredient) => ({
                     ...ingredient,
-                    recommendedAmount: ingredient.recommendedAmount, // Pass recommended amount to the cart
+                    recommendedAmount: ingredient.recommendedAmount,
                   })),
                 }
               : cartItem
@@ -301,7 +352,6 @@ const SearchBar = ({
     </View>
   );
 };
-
 const styles = StyleSheet.create({
   container: {
     flexDirection: "row",
@@ -358,7 +408,7 @@ const styles = StyleSheet.create({
     top: 35,
     right: 0,
     backgroundColor: "#e5dcd3",
-    borderRadius: 30,
+    borderRadius: 18,
     borderWidth: 1,
     borderColor: "#ccc",
     shadowColor: "#000",
@@ -373,7 +423,7 @@ const styles = StyleSheet.create({
   dropdownItemContainer: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 5,
+    paddingVertical: 10,
     paddingHorizontal: 10,
   },
   dropdownItem: {

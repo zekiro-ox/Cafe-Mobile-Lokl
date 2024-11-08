@@ -391,46 +391,64 @@ const Home = () => {
           .sort(
             (a, b) => categoryOrder[a.category] - categoryOrder[b.category]
           );
+  const calculateAverageRating = (ratings) => {
+    const totalRatings = Object.values(ratings).reduce(
+      (acc, count) => acc + count,
+      0
+    );
+    if (totalRatings === 0) return 0; // Avoid division by zero
 
-  const renderProduct = ({ item, index }) => (
-    <View>
-      {selectedCategory === "All" &&
-      (index === 0 ||
-        item.category !== filteredProducts[index - 1].category) ? (
-        <Text style={styles.categoryHeader}>{item.category}</Text>
-      ) : null}
-      <View style={styles.productItem}>
-        <Image
-          source={{ uri: item.image }} // Use the image URL from Firestore
-          style={styles.productImage}
-        />
-        <View style={styles.productInfo}>
-          <View style={styles.productHeader}>
-            <Text style={styles.productName}>{item.name}</Text>
-            <View style={styles.ratingContainer}>
-              {[...Array(5)].map((_, index) => (
-                <Icon
-                  key={index}
-                  name={index < item.rating ? "star" : "star-o"}
-                  size={15}
-                  color="#caad13"
-                  style={styles.star}
-                />
-              ))}
+    const weightedSum = Object.keys(ratings).reduce((acc, key) => {
+      return acc + key * ratings[key]; // Multiply rating by its count
+    }, 0);
+
+    return weightedSum / totalRatings; // Return average rating
+  };
+
+  const renderProduct = ({ item, index }) => {
+    // Calculate the average rating from the rating object
+    const averageRating = calculateAverageRating(item.rating || {});
+
+    return (
+      <View>
+        {selectedCategory === "All" &&
+        (index === 0 ||
+          item.category !== filteredProducts[index - 1].category) ? (
+          <Text style={styles.categoryHeader}>{item.category}</Text>
+        ) : null}
+        <View style={styles.productItem}>
+          <Image
+            source={{ uri: item.image }} // Use the image URL from Firestore
+            style={styles.productImage}
+          />
+          <View style={styles.productInfo}>
+            <View style={styles.productHeader}>
+              <Text style={styles.productName}>{item.name}</Text>
+              <View style={styles.ratingContainer}>
+                {[...Array(5)].map((_, index) => (
+                  <Icon
+                    key={index}
+                    name={index < Math.round(averageRating) ? "star" : "star-o"}
+                    size={15}
+                    color="#caad13"
+                    style={styles.star}
+                  />
+                ))}
+              </View>
             </View>
+            <Text style={styles.productDescription}>{item.description}</Text>
+            <Text style={styles.productPrice}>₱{item.price}</Text>
           </View>
-          <Text style={styles.productDescription}>{item.description}</Text>
-          <Text style={styles.productPrice}>₱{item.price}</Text>
+          <TouchableOpacity
+            style={styles.addButton}
+            onPress={() => handleAddToCart(item)}
+          >
+            <MaterialIcons name="add-shopping-cart" size={24} color="#4f3830" />
+          </TouchableOpacity>
         </View>
-        <TouchableOpacity
-          style={styles.addButton}
-          onPress={() => handleAddToCart(item)}
-        >
-          <MaterialIcons name="add-shopping-cart" size={24} color="#4f3830" />
-        </TouchableOpacity>
       </View>
-    </View>
-  );
+    );
+  };
 
   if (!fontsLoaded) {
     return null; // You can return a loading indicator here if needed

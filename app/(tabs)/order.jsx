@@ -23,6 +23,9 @@ import {
   where,
   getDocs,
   deleteDoc,
+  doc,
+  getDoc,
+  onSnapshot,
 } from "firebase/firestore"; // Import necessary Firestore functions
 import { getAuth } from "firebase/auth";
 
@@ -59,6 +62,7 @@ const Order = () => {
   const [orderItems, setOrderItems] = useState([]);
   const [isPayPalVisible, setIsPayPalVisible] = useState(false);
   const [isPaymentProcessing, setIsPaymentProcessing] = useState(false);
+  const [confirmationMessage, setConfirmationMessage] = useState("");
 
   useEffect(() => {
     if (parsedItems.length > 0 && !confirmed) {
@@ -69,20 +73,68 @@ const Order = () => {
     console.log("Parsed Items:", parsedItems);
   }, [parsedItems, confirmed]);
 
-  const renderSelectedItem = ({ item }) => (
-    <View style={styles.itemContainer}>
-      <Text style={styles.itemName}>{item.name}</Text>
-      {item.ingredients && item.ingredients.length > 0 && (
-        <Text style={styles.itemCustomization}>
-          Ingredients:{" "}
-          {item.ingredients
-            .map((ingredient) => `${ingredient.name} x ${ingredient.quantity}`)
-            .join(", ")}
-        </Text>
-      )}
-      <Text style={styles.itemPrice}>₱{item.totalPrice}</Text>
-    </View>
-  );
+  useEffect(() => {
+    setOrderItems(parsedItems);
+    setIsModalVisible(true);
+  }, [parsedItems]);
+
+  // Function to fetch the order status
+  const fetchOrderStatus = async (userId) => {
+    const q = query(collection(db, "order"), where("uid", "==", userId));
+    const querySnapshot = await getDocs(q);
+
+    if (!querySnapshot.empty) {
+      querySnapshot.forEach((doc) => {
+        const orderData = doc.data();
+        if (orderData.status) {
+          setConfirmationMessage(orderData.status);
+        }
+      });
+    }
+  };
+
+  useEffect(() => {
+    const auth = getAuth();
+    const user = auth.currentUser;
+
+    if (user) {
+      const userId = user.uid;
+      const q = query(collection(db, "order"), where("uid", "==", userId));
+
+      const unsubscribe = onSnapshot(q, (querySnapshot) => {
+        querySnapshot.forEach((doc) => {
+          const orderData = doc.data();
+          if (orderData.status) {
+            setConfirmationMessage(orderData.status);
+          }
+        });
+      });
+
+      return () => unsubscribe(); // Cleanup listener on unmount
+    }
+  }, [confirmed]); // Only run this effect if the order is confirmed
+
+  const renderSelectedItem = ({ item }) => {
+    if (!item || !item.name) {
+      return null; // Avoid rendering if item is undefined or does not have an id
+    }
+    return (
+      <View style={styles.itemContainer}>
+        <Text style={styles.itemName}>{item.name}</Text>
+        {item.ingredients && item.ingredients.length > 0 && (
+          <Text style={styles.itemCustomization}>
+            Ingredients:{" "}
+            {item.ingredients
+              .map(
+                (ingredient) => `${ingredient.name} x ${ingredient.quantity}`
+              )
+              .join(",")}
+          </Text>
+        )}
+        <Text style={styles.itemPrice}>₱{item.totalPrice}</Text>
+      </View>
+    );
+  };
 
   const handleConfirmPayment = () => {
     setIsModalVisible(false);
@@ -119,7 +171,21 @@ const Order = () => {
           createdAt: new Date(),
         };
 
-        await addDoc(collection(db, "order"), orderData);
+        // Add the order to Firestore
+        const orderDocRef = await addDoc(collection(db, "order"), orderData);
+
+        // Fetch the order document data
+        const orderDoc = await getDoc(orderDocRef);
+        const orderDataFetched = orderDoc.data();
+
+        // Set the confirmation message based on the status field
+        if (orderDataFetched && orderDataFetched.status) {
+          setConfirmationMessage(orderDataFetched.status);
+        } else {
+          setConfirmationMessage(
+            "Order confirmed! It will take 20 mins before availability for pick up."
+          );
+        }
       }
 
       setConfirmed(true);
@@ -143,8 +209,8 @@ const Order = () => {
   const handleOrderDone = async () => {
     setOrderInProgress(true);
     setOrderItems([]);
-    setConfirmed(false);
     setIsModalVisible(false);
+    setConfirmed(false);
     setIsPayPalVisible(false); // Hide PayPal payment component
 
     const auth = getAuth();
@@ -191,13 +257,12 @@ const Order = () => {
         </View>
       ) : confirmed ? (
         <View style={styles.confirmationContainer}>
-          <Text style={styles.confirmationMessage}>
-            Order confirmed! It will take 20 mins before availability for pick
-            up.
-          </Text>
+          <Text style={styles.confirmationMessage}>{confirmationMessage}</Text>
           <FlatList
             data={orderItems}
-            keyExtractor={(item) => item.id.toString()}
+            keyExtractor={(item) =>
+              item.id ? item.id.toString() : Math.random().toString()
+            } // Updated keyExtractor
             renderItem={renderSelectedItem}
             style={styles.list}
           />
@@ -255,7 +320,6 @@ const Order = () => {
     </SafeAreaView>
   );
 };
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,

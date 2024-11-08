@@ -13,24 +13,113 @@ import {
   Montserrat_400Regular,
   Montserrat_700Bold,
 } from "@expo-google-fonts/montserrat";
-import CheckBox from "react-native-check-box";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Link } from "expo-router";
+import { Link, useRouter } from "expo-router";
+import { getAuth, createUserWithEmailAndPassword } from "firebase/auth";
+import { db } from "../config/firebase";
+import { doc, setDoc } from "firebase/firestore";
+import Toast from "react-native-toast-message";
+
+// Custom toast configuration
+const toastConfig = {
+  success: ({ text1, text2 }) => (
+    <View style={styles.toastContainer}>
+      <Text style={styles.toastTitle}>{text1}</Text>
+      <Text style={styles.toastMessage}>{text2}</Text>
+    </View>
+  ),
+  error: ({ text1, text2 }) => (
+    <View style={styles.toastContainer}>
+      <Text style={styles.toastTitle}>{text1}</Text>
+      <Text style={styles.toastMessage}>{text2}</Text>
+    </View>
+  ),
+};
 
 export default function SignUp() {
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [isChecked, setIsChecked] = useState(false); // State to handle checkbox value
+  const [email, setEmail] = useState("");
+  const [loading, setLoading] = useState(false);
+  const router = useRouter();
 
   const [fontsLoaded] = useFonts({
     Montserrat_400Regular,
     Montserrat_700Bold,
   });
 
+  const isValidEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  const isValidPassword = (password) =>
+    /^(?=.*[!@#$%^&*])[A-Za-z\d!@#$%^&*]{12,16}$/.test(password);
+
   if (!fontsLoaded) {
     return <ActivityIndicator size="large" color="#675148" />;
   }
+
+  const handleSignUp = async () => {
+    if (!isValidEmail(email)) {
+      Toast.show({
+        type: "error",
+        text1: "Invalid Email",
+        text2: "Please enter a valid email address.",
+      });
+      return;
+    }
+
+    if (!isValidPassword(password)) {
+      Toast.show({
+        type: "error",
+        text1: "Invalid Password",
+        text2:
+          "Password must be 12-16 characters with at least one special character.",
+      });
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      Toast.show({
+        type: "error",
+        text1: "Password Mismatch",
+        text2: "Passwords do not match. Please try again.",
+      });
+      return;
+    }
+
+    const auth = getAuth();
+    try {
+      setLoading(true);
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        email,
+        password
+      );
+      const user = userCredential.user;
+
+      await setDoc(doc(db, "customer", user.uid), {
+        email: user.email,
+        createdAt: new Date(),
+      });
+
+      Toast.show({
+        type: "success",
+        text1: "Account Created",
+        text2: "Your account was created successfully!",
+      });
+
+      setTimeout(() => {
+        setLoading(false);
+        router.push("/sign-in");
+      }, 3000);
+    } catch (error) {
+      setLoading(false);
+      Toast.show({
+        type: "error",
+        text1: "Sign Up Error",
+        text2: error.message,
+      });
+    }
+  };
 
   return (
     <SafeAreaView
@@ -39,22 +128,43 @@ export default function SignUp() {
     >
       <Image
         source={require("../../assets/logo.png")}
-        style={{
-          width: 150,
-          height: 150,
-          marginBottom: 20,
-        }}
+        style={{ width: 150, height: 150, marginBottom: 20 }}
         resizeMode="contain"
       />
       <Text
         style={{ fontFamily: "Montserrat_700Bold", color: "#675148" }}
-        className="text-3xl font-extrabold mb-8"
+        className="text-3xl font-extrabold mb-2"
       >
         Sign Up
       </Text>
 
+      {/* Warning message with icon */}
+      <View
+        style={{ flexDirection: "row", alignItems: "center", marginBottom: 16 }}
+      >
+        <MaterialIcons
+          name="warning"
+          size={20}
+          color="#eee"
+          style={{ marginRight: 5 }}
+        />
+        <Text
+          style={{
+            color: "#eee",
+            fontFamily: "Montserrat_400Regular",
+            fontSize: 14,
+            textAlign: "center",
+          }}
+        >
+          For password reset, please use a valid email address (e.g., a Gmail
+          address).
+        </Text>
+      </View>
+
       <TextInput
         placeholder="Email"
+        value={email}
+        onChangeText={(text) => setEmail(text)}
         className="w-full p-3 mb-4 text-base rounded-lg drop-shadow-lg shadow-lg"
         style={{
           backgroundColor: "#fff",
@@ -66,7 +176,8 @@ export default function SignUp() {
         keyboardType="email-address"
       />
 
-      <View style={{ position: "relative", width: "100%", marginBottom: 20 }}>
+      {/* Password input fields */}
+      <View style={{ position: "relative", width: "100%", marginBottom: 5 }}>
         <TextInput
           placeholder="Password"
           value={password}
@@ -82,7 +193,6 @@ export default function SignUp() {
             paddingRight: 50,
           }}
         />
-
         <TouchableOpacity
           style={{ position: "absolute", right: 10, top: 15 }}
           onPress={() => setIsPasswordVisible(!isPasswordVisible)}
@@ -94,6 +204,18 @@ export default function SignUp() {
           />
         </TouchableOpacity>
       </View>
+
+      {/* Password instruction */}
+      <Text
+        style={{
+          color: "#eee",
+          fontSize: 10,
+          marginBottom: 15,
+          fontFamily: "Montserrat_400Regular",
+        }}
+      >
+        Password must be 12-16 characters with at least one special character.
+      </Text>
 
       <View style={{ position: "relative", width: "100%", marginBottom: 20 }}>
         <TextInput
@@ -111,7 +233,6 @@ export default function SignUp() {
             paddingRight: 50,
           }}
         />
-
         <TouchableOpacity
           style={{ position: "absolute", right: 10, top: 15 }}
           onPress={() => setIsPasswordVisible(!isPasswordVisible)}
@@ -124,8 +245,6 @@ export default function SignUp() {
         </TouchableOpacity>
       </View>
 
-      {/* CheckBox for Terms and Conditions */}
-
       <TouchableOpacity
         style={{
           backgroundColor: "#675148",
@@ -134,23 +253,27 @@ export default function SignUp() {
           borderRadius: 8,
           width: "100%",
           alignItems: "center",
-          marginBottom: 20, // Add margin to separate from the new text
+          marginBottom: 20,
         }}
-        onPress={() => alert("Signed Up")}
+        onPress={handleSignUp}
+        disabled={loading}
       >
-        <Text
-          style={{
-            color: "#fff",
-            fontSize: 16,
-            fontWeight: "bold",
-            fontFamily: "Montserrat_700Bold",
-          }}
-        >
-          Sign Up
-        </Text>
+        {loading ? (
+          <ActivityIndicator color="#fff" />
+        ) : (
+          <Text
+            style={{
+              color: "#fff",
+              fontSize: 16,
+              fontWeight: "bold",
+              fontFamily: "Montserrat_700Bold",
+            }}
+          >
+            Sign Up
+          </Text>
+        )}
       </TouchableOpacity>
 
-      {/* Already Have an Account Text */}
       <TouchableOpacity>
         <Link href="/sign-in">
           <Text
@@ -165,6 +288,28 @@ export default function SignUp() {
           </Text>
         </Link>
       </TouchableOpacity>
+
+      {/* Toast component */}
+      <Toast config={toastConfig} />
     </SafeAreaView>
   );
 }
+
+const styles = {
+  toastContainer: {
+    backgroundColor: "#4f3830",
+    padding: 20,
+    borderRadius: 8,
+    margin: 10,
+  },
+  toastTitle: {
+    color: "#d1c2b4",
+    fontFamily: "Montserrat_700Bold",
+    fontSize: 16,
+  },
+  toastMessage: {
+    color: "#fff",
+    fontFamily: "Montserrat_400Regular",
+    fontSize: 14,
+  },
+};

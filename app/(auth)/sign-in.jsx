@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   Image,
   ActivityIndicator,
+  SafeAreaView,
   Alert,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
@@ -14,28 +15,44 @@ import {
   Montserrat_400Regular,
   Montserrat_700Bold,
 } from "@expo-google-fonts/montserrat";
+import { useRouter, Link } from "expo-router";
+import { auth } from "../config/firebase";
+import {
+  signInWithEmailAndPassword,
+  sendPasswordResetEmail,
+} from "firebase/auth";
+import Toast from "react-native-toast-message";
 import CheckBox from "react-native-check-box";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { useRouter, Link } from "expo-router"; // Import useRouter
-import CustomAlert from "../component/CustomeAlert";
-import { auth } from "../config/firebase"; // Import the auth object from your firebase config
-import { signInWithEmailAndPassword } from "firebase/auth"; // Import the signIn function
+
+// Custom toast configuration
+const toastConfig = {
+  success: ({ text1, text2 }) => (
+    <View style={styles.toastContainer}>
+      <Text style={styles.toastTitle}>{text1}</Text>
+      <Text style={styles.toastMessage}>{text2}</Text>
+    </View>
+  ),
+  error: ({ text1, text2 }) => (
+    <View style={styles.toastContainer}>
+      <Text style={styles.toastTitle}>{text1}</Text>
+      <Text style={styles.toastMessage}>{text2}</Text>
+    </View>
+  ),
+};
 
 export default function SignIn() {
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [password, setPassword] = useState("");
   const [email, setEmail] = useState("");
-  const [isChecked, setIsChecked] = useState(false); // State to handle checkbox value
+  const [isChecked, setIsChecked] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [showCustomAlert, setShowCustomAlert] = useState(false);
-  const [successMessage, setSuccessMessage] = useState("");
 
   const [fontsLoaded] = useFonts({
     Montserrat_400Regular,
     Montserrat_700Bold,
   });
 
-  const router = useRouter(); // Get the router object
+  const router = useRouter();
 
   if (!fontsLoaded) {
     return <ActivityIndicator size="large" color="#675148" />;
@@ -45,17 +62,47 @@ export default function SignIn() {
     setLoading(true);
 
     try {
-      // Use Firebase Authentication to sign in
       await signInWithEmailAndPassword(auth, email, password);
       setLoading(false);
-      setSuccessMessage("Logged in successfully!");
-      setShowCustomAlert(true);
-      // Navigate to home screen using router
+      Toast.show({
+        type: "success",
+        text1: "Logged in successfully!",
+        text2: "Welcome back!",
+      });
       router.replace("/home");
     } catch (error) {
       setLoading(false);
-      // Show error message
-      Alert.alert("Error", error.message);
+      Toast.show({
+        type: "error",
+        text1: "Sign In Error",
+        text2: error.message,
+      });
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    if (!email) {
+      Toast.show({
+        type: "error",
+        text1: "Email Required",
+        text2: "Please enter your email address.",
+      });
+      return;
+    }
+
+    try {
+      await sendPasswordResetEmail(auth, email);
+      Toast.show({
+        type: "success",
+        text1: "Email Sent",
+        text2: "Check your gmail inbox for the password reset link.",
+      });
+    } catch (error) {
+      Toast.show({
+        type: "error",
+        text1: "Reset Password Error",
+        text2: error.message,
+      });
     }
   };
 
@@ -124,7 +171,6 @@ export default function SignIn() {
         </TouchableOpacity>
       </View>
 
-      {/* Forgot Password and Remember Me Row */}
       <View
         style={{
           width: "100%",
@@ -134,7 +180,6 @@ export default function SignIn() {
           marginBottom: 20,
         }}
       >
-        {/* CheckBox for Remember Me */}
         <CheckBox
           style={{ flex: 1, padding: 0, color: "#675148" }}
           onClick={() => setIsChecked(!isChecked)}
@@ -146,8 +191,7 @@ export default function SignIn() {
           }}
         />
 
-        {/* Forgot Password Text */}
-        <TouchableOpacity onPress={() => Alert.alert("Forgot Password")}>
+        <TouchableOpacity onPress={handleForgotPassword}>
           <Text
             style={{ color: "#675148", fontFamily: "Montserrat_400Regular" }}
           >
@@ -164,23 +208,27 @@ export default function SignIn() {
           borderRadius: 8,
           width: "100%",
           alignItems: "center",
-          marginBottom: 20, // Add margin to separate from the new text
+          marginBottom: 20,
         }}
         onPress={handleSignIn}
+        disabled={loading}
       >
-        <Text
-          style={{
-            color: "#fff",
-            fontSize: 16,
-            fontWeight: "bold",
-            fontFamily: "Montserrat_700Bold",
-          }}
-        >
-          {loading ? "Signing In..." : "Sign In"}
-        </Text>
+        {loading ? (
+          <ActivityIndicator color="#fff" />
+        ) : (
+          <Text
+            style={{
+              color: "#fff",
+              fontSize: 16,
+              fontWeight: "bold",
+              fontFamily: "Montserrat_700Bold",
+            }}
+          >
+            Sign In
+          </Text>
+        )}
       </TouchableOpacity>
 
-      {/* Don't Have an Account Yet Text */}
       <TouchableOpacity>
         <Link href="/sign-up">
           <Text
@@ -195,11 +243,27 @@ export default function SignIn() {
           </Text>
         </Link>
       </TouchableOpacity>
-      <CustomAlert
-        visible={showCustomAlert}
-        message={successMessage}
-        onClose={() => setShowCustomAlert(false)}
-      />
+
+      <Toast config={toastConfig} />
     </SafeAreaView>
   );
 }
+
+const styles = {
+  toastContainer: {
+    backgroundColor: "#4f3830",
+    padding: 20,
+    borderRadius: 8,
+    margin: 10,
+  },
+  toastTitle: {
+    color: "#d1c2b4",
+    fontFamily: "Montserrat_700Bold",
+    fontSize: 16,
+  },
+  toastMessage: {
+    color: "#fff",
+    fontFamily: "Montserrat_400Regular",
+    fontSize: 14,
+  },
+};

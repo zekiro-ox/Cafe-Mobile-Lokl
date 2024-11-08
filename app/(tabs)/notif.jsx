@@ -5,7 +5,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
 } from "react-native";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import {
@@ -13,94 +13,21 @@ import {
   Montserrat_400Regular,
   Montserrat_700Bold,
 } from "@expo-google-fonts/montserrat";
-
-const initialNotifications = [
-  // Read notifications
-  {
-    id: "1",
-    message: "Your Latte is ready for pick-up!",
-    read: true,
-    time: "10:30 AM",
-  },
-  {
-    id: "2",
-    message: "Espresso is now available for pick-up.",
-    read: true,
-    time: "11:00 AM",
-  },
-  {
-    id: "3",
-    message: "Caramel Macchiato is ready for you.",
-    read: true,
-    time: "11:30 AM",
-  },
-  {
-    id: "4",
-    message: "Your order of Croissants is ready.",
-    read: true,
-    time: "12:00 PM",
-  },
-  {
-    id: "5",
-    message: "Your breakfast sandwich is ready.",
-    read: true,
-    time: "12:15 PM",
-  },
-
-  // Unread notifications
-  {
-    id: "6",
-    message: "Your Cappuccino will be ready in 5 minutes.",
-    read: false,
-    time: "10:35 AM",
-  },
-  {
-    id: "7",
-    message: "Your Cold Brew is being prepared.",
-    read: false,
-    time: "10:45 AM",
-  },
-  {
-    id: "8",
-    message: "Your Matcha Latte is almost ready.",
-    read: false,
-    time: "11:10 AM",
-  },
-  {
-    id: "9",
-    message: "Your Tiramisu is now available.",
-    read: false,
-    time: "11:20 AM",
-  },
-  {
-    id: "10",
-    message: "Your Chai Latte will be ready soon.",
-    read: false,
-    time: "11:45 AM",
-  },
-  {
-    id: "11",
-    message: "Your Avocado Toast is being toasted.",
-    read: false,
-    time: "12:05 PM",
-  },
-  {
-    id: "12",
-    message: "Your Berry Smoothie is blending now.",
-    read: false,
-    time: "12:20 PM",
-  },
-  {
-    id: "13",
-    message: "Your Vegan Muffin is in the oven.",
-    read: false,
-    time: "12:30 PM",
-  },
-];
+import {
+  getFirestore,
+  collection,
+  query,
+  where,
+  onSnapshot,
+  updateDoc,
+  doc,
+} from "firebase/firestore";
+import { getAuth } from "firebase/auth";
 
 const Notif = () => {
   const [filter, setFilter] = useState("Unread");
-  const [notifications, setNotifications] = useState(initialNotifications); // Store notifications in state
+  const [notifications, setNotifications] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   // Load Montserrat fonts
   const [fontsLoaded] = useFonts({
@@ -108,17 +35,45 @@ const Notif = () => {
     Montserrat_700Bold,
   });
 
-  // If fonts are not loaded, show a loading indicator
-  if (!fontsLoaded) {
-    return <ActivityIndicator size="large" />;
-  }
+  // Get Firestore instance
+  const db = getFirestore();
+  const auth = getAuth();
+  const currentUser = auth.currentUser;
 
-  const handleNotificationClick = (id) => {
-    // Update the 'read' status of the clicked notification
-    const updatedNotifications = notifications.map((notif) =>
-      notif.id === id ? { ...notif, read: true } : notif
+  useEffect(() => {
+    if (!currentUser) return;
+
+    const q = query(
+      collection(db, "notification"),
+      where("uid", "==", currentUser.uid)
     );
-    setNotifications(updatedNotifications); // Update the state
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const fetchedNotifications = snapshot.docs.map((doc) => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          message: data.message,
+          time: data.timeSend.toDate().toLocaleTimeString(), // Format timestamp
+          read: data.status === "read",
+        };
+      });
+      setNotifications(fetchedNotifications);
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [db, currentUser]);
+
+  const handleNotificationClick = async (id) => {
+    const notifRef = doc(db, "notification", id);
+    await updateDoc(notifRef, { status: "read" });
+
+    setNotifications((prevNotifications) =>
+      prevNotifications.map((notif) =>
+        notif.id === id ? { ...notif, read: true } : notif
+      )
+    );
   };
 
   const filteredNotifications = notifications.filter((notif) =>
@@ -126,9 +81,7 @@ const Notif = () => {
   );
 
   const renderItem = ({ item }) => (
-    <TouchableOpacity
-      onPress={() => handleNotificationClick(item.id)} // Mark as read when clicked
-    >
+    <TouchableOpacity onPress={() => handleNotificationClick(item.id)}>
       <View
         style={{
           flexDirection: "row",
@@ -143,34 +96,29 @@ const Notif = () => {
           shadowOffset: { width: 0, height: 2 },
         }}
       >
-        {/* Notification icon */}
         <Ionicons
           name="notifications-outline"
           size={24}
-          color={item.read ? "#aaa" : "#000"} // Icon color changes based on read status
+          color={item.read ? "#aaa" : "#000"}
           style={{ marginRight: 16 }}
         />
-
-        {/* Message and time */}
         <View style={{ flex: 1 }}>
           <Text
             style={{
               fontFamily: "Montserrat_400Regular",
               fontSize: 16,
               marginBottom: 4,
-              color: item.read ? "#aaa" : "#000", // Text color changes based on read status
+              color: item.read ? "#aaa" : "#000",
             }}
           >
             {item.message}
           </Text>
-
-          {/* Time at bottom-right */}
           <Text
             style={{
               fontFamily: "Montserrat_400Regular",
               fontSize: 12,
               color: "#555",
-              alignSelf: "flex-end", // Aligns time to the bottom-right
+              alignSelf: "flex-end",
             }}
           >
             {item.time}
@@ -179,6 +127,10 @@ const Notif = () => {
       </View>
     </TouchableOpacity>
   );
+
+  if (loading || !fontsLoaded) {
+    return <ActivityIndicator size="large" />;
+  }
 
   return (
     <SafeAreaView style={{ backgroundColor: "#cfc1b1" }} className="flex-1">
@@ -250,7 +202,6 @@ const Notif = () => {
         </TouchableOpacity>
       </View>
 
-      {/* FlatList for notifications */}
       <FlatList
         data={filteredNotifications}
         keyExtractor={(item) => item.id}

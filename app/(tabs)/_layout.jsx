@@ -8,7 +8,7 @@ import {
   Montserrat_700Bold,
 } from "@expo-google-fonts/montserrat";
 
-const TabIcon = ({ icon: Icon, color, name }) => {
+const TabIcon = ({ icon: Icon, color, name, unreadCount }) => {
   return (
     <View style={{ justifyContent: "center", alignItems: "center" }}>
       <Icon
