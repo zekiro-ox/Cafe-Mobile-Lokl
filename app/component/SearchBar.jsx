@@ -25,6 +25,7 @@ import { useRouter } from "expo-router";
 import { getAuth } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../config/firebase"; // Adjust the path as necessary
+import { RadioButton } from "react-native-paper";
 
 const SearchBar = ({
   cartCount,
@@ -111,7 +112,8 @@ const SearchBar = ({
     return (
       <View style={styles.cartItem}>
         <RadioButton
-          selected={isSelected}
+          value={item.id}
+          status={isSelected ? "checked" : "unchecked"}
           onPress={() => {
             const newSelectedCartItems = isSelected
               ? selectedCartItems.filter((id) => id !== item.id)
@@ -187,7 +189,6 @@ const SearchBar = ({
       </View>
     );
   };
-
   return (
     <View style={styles.container}>
       <View style={styles.searchBarContainer}>
