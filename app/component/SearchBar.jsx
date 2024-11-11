@@ -206,7 +206,7 @@ const SearchBar = ({
           onChangeText={(text) => setSearchQuery(text)}
         />
         <TouchableOpacity style={styles.cartContainer} onPress={toggleModal}>
-          <MaterialIcons name="shopping-cart" size={24} color="#737373" />
+          <MaterialIcons name="shopping-cart" size={30} color="#737373" />
           {cartCount > 0 && (
             <View style={styles.cartBadge}>
               <Text style={styles.cartBadgeText}>{cartCount}</Text>
@@ -220,7 +220,7 @@ const SearchBar = ({
           onPress={toggleDropdown}
           style={styles.profileIconContainer}
         >
-          <FontAwesome name="user-circle" size={28} color="#737373" />
+          <FontAwesome name="user-circle" size={30} color="#737373" />
         </TouchableOpacity>
 
         {isDropdownVisible && (
@@ -298,6 +298,7 @@ const SearchBar = ({
                   name: item.name,
                   totalPrice: item.totalPrice.toFixed(2),
                   quantity: item.quantity,
+                  image: item.image,
                   ingredients: item.ingredients.map((ingredient) => ({
                     name: ingredient.name,
                     quantity: ingredient.quantity,

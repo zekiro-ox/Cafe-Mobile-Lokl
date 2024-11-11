@@ -133,33 +133,12 @@ export default function SignUp() {
       />
       <Text
         style={{ fontFamily: "Montserrat_700Bold", color: "#675148" }}
-        className="text-3xl font-extrabold mb-2"
+        className="text-3xl font-extrabold mb-6"
       >
         Sign Up
       </Text>
 
       {/* Warning message with icon */}
-      <View
-        style={{ flexDirection: "row", alignItems: "center", marginBottom: 16 }}
-      >
-        <MaterialIcons
-          name="warning"
-          size={20}
-          color="#eee"
-          style={{ marginRight: 5 }}
-        />
-        <Text
-          style={{
-            color: "#eee",
-            fontFamily: "Montserrat_400Regular",
-            fontSize: 14,
-            textAlign: "center",
-          }}
-        >
-          For password reset, please use a valid email address (e.g., a Gmail
-          address).
-        </Text>
-      </View>
 
       <TextInput
         placeholder="Email"

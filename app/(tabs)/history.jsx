@@ -6,6 +6,7 @@ import {
   FlatList,
   Image,
   TouchableOpacity,
+  TextInput,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { db } from "../config/firebase"; // Adjust the path as necessary
@@ -18,7 +19,6 @@ import {
   getDoc,
   updateDoc,
 } from "firebase/firestore"; // Import necessary Firestore functions
-
 import { getAuth } from "firebase/auth";
 import {
   Montserrat_400Regular,
@@ -33,6 +33,11 @@ const History = () => {
   const [productsData, setProductsData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [userProfile, setUserProfile] = useState({});
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [feedback, setFeedback] = useState("");
+  const [isEditingName, setIsEditingName] = useState(false); // New state for editing name
   const router = useRouter();
 
   const [fontsLoaded] = useFonts({
@@ -93,8 +98,27 @@ const History = () => {
       }
     };
 
+    const fetchUserProfile = async () => {
+      const auth = getAuth();
+      const user = auth.currentUser;
+
+      if (user) {
+        const userId = user.uid;
+        const userDocRef = doc(db, "customer", userId);
+        const userDoc = await getDoc(userDocRef);
+
+        if (userDoc.exists()) {
+          const profileData = userDoc.data();
+          setUserProfile(profileData);
+          setName(profileData.name || "");
+          setEmail(profileData.email || "No email provided");
+        }
+      }
+    };
+
     fetchHistory();
     fetchProducts();
+    fetchUserProfile(); // Fetch user profile data
   }, []);
 
   const addToCart = (order) => {
@@ -181,6 +205,46 @@ const History = () => {
     }
   };
 
+  const handleSaveProfile = async () => {
+    const auth = getAuth();
+    const user = auth.currentUser;
+
+    if (user) {
+      const userId = user.uid; // Get the current user's ID
+      const userDocRef = doc(db, "customer", userId); // Reference to the user document
+
+      try {
+        // Update the user's name and email in Firestore
+        await updateDoc(userDocRef, { name, email });
+        setUserProfile({ ...userProfile, name, email }); // Update local state
+        setIsEditingName(false); // Exit edit mode
+      } catch (error) {
+        console.error("Error updating document: ", error);
+      }
+    }
+  };
+
+  const handleSendFeedback = async () => {
+    const auth = getAuth();
+    const user = auth.currentUser;
+
+    if (user) {
+      const userId = user.uid; // Get the current user's ID
+      const userDocRef = doc(db, "customer", userId); // Reference to the user document
+
+      try {
+        // Update the user's feedback in Firestore
+        await updateDoc(userDocRef, {
+          feedback: feedback,
+        });
+        console.log("Feedback sent:", feedback);
+        setFeedback(""); // Clear the feedback input
+      } catch (error) {
+        console.error("Error sending feedback: ", error);
+      }
+    }
+  };
+
   const StarRating = ({ rating, onRate }) => {
     return (
       <View style={styles.starContainer}>
@@ -204,7 +268,6 @@ const History = () => {
   };
 
   const renderHistoryItem = ({ item }) => {
-    // Get the user's rating from the history item
     const userRating = item.rating || 0; // Default to 0 if no rating exists
 
     return (
@@ -236,12 +299,11 @@ const History = () => {
           Date: {new Date(item.createdAt.seconds * 1000).toLocaleString()}
         </Text>
 
-        {/* Add Star Rating Component for User Rating */}
         <StarRating
-          rating={userRating} // Pass the user's rating
+          rating={userRating}
           onRate={(newRating) =>
             handleRate(item.id, item.productName, newRating)
-          } // Pass historyId and product name
+          }
         />
       </View>
     );
@@ -265,9 +327,55 @@ const History = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <Text style={styles.catchyPhrase}>
-        Ready to enjoy your favorites again? Order your last drinks now!
-      </Text>
+      <View style={styles.accountContainer}>
+        <Text style={styles.accountTitle}>Account</Text>
+        <View style={styles.accountInfo}>
+          {isEditingName ? (
+            <TextInput
+              style={styles.nameInput}
+              value={name}
+              onChangeText={setName}
+              placeholder="Enter your name"
+            />
+          ) : (
+            <Text style={styles.accountText}>{name}</Text>
+          )}
+          <TouchableOpacity
+            onPress={() => {
+              if (isEditingName) {
+                handleSaveProfile();
+              }
+              setIsEditingName(!isEditingName);
+            }}
+          >
+            <MaterialIcons
+              name={isEditingName ? "check" : "edit"}
+              size={24}
+              color="#4f3830"
+            />
+          </TouchableOpacity>
+        </View>
+        <Text style={styles.accountText}>{email}</Text>
+        <Text style={styles.accountText}>
+          Account Created:{" "}
+          {new Date(userProfile.createdAt?.seconds * 1000).toLocaleDateString()}
+        </Text>
+      </View>
+
+      <TextInput
+        style={styles.feedbackInput}
+        placeholder="Write your feedback..."
+        value={feedback}
+        onChangeText={setFeedback}
+        multiline
+        numberOfLines={3}
+      />
+      <TouchableOpacity style={styles.sendButton} onPress={handleSendFeedback}>
+        <Text style={styles.sendButtonText}>Send Feedback</Text>
+      </TouchableOpacity>
+
+      <Text style={styles.historyLabel}>Order History</Text>
+
       {historyData.length === 0 ? (
         <Text>No history available.</Text>
       ) : (
@@ -288,15 +396,57 @@ const styles = StyleSheet.create({
     padding: 20,
     backgroundColor: "#cfc1b1",
   },
+  accountContainer: {
+    marginBottom: 20,
+  },
+  accountTitle: {
+    fontSize: 24,
+    fontFamily: "Montserrat_700Bold",
+    marginBottom: 10,
+  },
+  accountInfo: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 10,
+  },
+  accountText: {
+    fontSize: 18,
+    fontFamily: "Montserrat_400Regular",
+  },
+  feedbackInput: {
+    width: "100%",
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 10,
+    padding: 10,
+    marginBottom: 15,
+    fontFamily: "Montserrat_400Regular",
+    height: 80,
+  },
+  sendButton: {
+    backgroundColor: "#4f3830",
+    padding: 10,
+    borderRadius: 10,
+    marginBottom: 15,
+    width: " 100%",
+  },
+  sendButtonText: {
+    color: "#fff",
+    fontFamily: "Montserrat_700Bold",
+    textAlign: "center",
+  },
   list: {
     marginBottom: 20,
   },
-  catchyPhrase: {
+  nameInput: {
     fontSize: 18,
-    fontFamily: "Montserrat_700Bold",
-    textAlign: "center",
-    marginBottom: 15,
-    color: "#4f3830",
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 10,
+    padding: 10,
+    marginRight: 10,
+    flex: 1,
   },
   itemContainer: {
     padding: 15,
@@ -353,6 +503,12 @@ const styles = StyleSheet.create({
   starContainer: {
     flexDirection: "row",
     marginVertical: 5,
+  },
+  historyLabel: {
+    fontSize: 14,
+    fontFamily: "Montserrat_700Bold",
+    marginVertical: 10,
+    color: "#4f3830",
   },
 });
 

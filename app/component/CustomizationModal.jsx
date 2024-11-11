@@ -75,23 +75,26 @@ const CustomizationModal = ({
           }, {})
         : {};
 
-      setCustomization((prevCustomization) => ({
-        productQuantity: product.quantity || prevCustomization.productQuantity,
-        selectedIngredients: initialIngredients,
-      }));
+      setTimeout(() => {
+        setCustomization((prevCustomization) => ({
+          productQuantity:
+            product.quantity || prevCustomization.productQuantity,
+          selectedIngredients: initialIngredients,
+        }));
 
-      // Reset alerted ingredients when modal opens
-      setAlertedIngredients({});
+        // Reset alerted ingredients when modal opens
+        setAlertedIngredients({});
 
-      // Show toast message when modal opens
-      Toast.show({
-        text1: "Customize your drinks!",
-        text2: "Press the recommended icon for best drinks!",
-        position: "top",
-        visibilityTime: 4000,
-        autoHide: true,
-        type: "info",
-      });
+        // Show toast message when modal opens
+        Toast.show({
+          text1: "Customize your drinks!",
+          text2: "Press the recommended icon for best drinks!",
+          position: "top",
+          visibilityTime: 4000,
+          autoHide: true,
+          type: "info",
+        });
+      }, 0);
     }
   }, [visible, product]);
 

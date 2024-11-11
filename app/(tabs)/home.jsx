@@ -67,6 +67,11 @@ const Home = () => {
   const initialAIResponse = "Hello! How can I assist you today?";
   const preBuiltQuestions = [
     {
+      question: "Where can I find your physical store?",
+      answer:
+        "This is the address of LOKL: Unit B VSL Bldg., 222 EJ Valdez St.,Brgy. Ninoy Aquino,Marisol Subd.,Angeles City",
+    },
+    {
       question: "What are the lactose-free or non-dairy alternative milk?",
       answer:
         "Almond Milk: A smooth and creamy vanilla latte made with almond milk, perfect for those who are lactose intolerant. Soy Milk: soy milk for a slightly nutty and rich flavor.",
@@ -425,7 +430,10 @@ const Home = () => {
           item.category !== filteredProducts[index - 1].category) ? (
           <Text style={styles.categoryHeader}>{item.category}</Text>
         ) : null}
-        <View style={styles.productItem}>
+        <TouchableOpacity
+          style={styles.productItem} // Make the entire card clickable
+          onPress={() => handleAddToCart(item)} // Open customization modal on card press
+        >
           <Image
             source={{ uri: item.image }} // Use the image URL from Firestore
             style={styles.productImage}
@@ -448,13 +456,8 @@ const Home = () => {
             <Text style={styles.productDescription}>{item.description}</Text>
             <Text style={styles.productPrice}>₱{item.price}</Text>
           </View>
-          <TouchableOpacity
-            style={styles.addButton}
-            onPress={() => handleAddToCart(item)}
-          >
-            <MaterialIcons name="add-shopping-cart" size={24} color="#4f3830" />
-          </TouchableOpacity>
-        </View>
+          {/* Remove the addButton, since we want the whole card to be clickable */}
+        </TouchableOpacity>
       </View>
     );
   };

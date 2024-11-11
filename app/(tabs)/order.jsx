@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -6,6 +6,9 @@ import {
   FlatList,
   TouchableOpacity,
   Modal,
+  TextInput,
+  ScrollView,
+  Image,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams } from "expo-router";
@@ -28,6 +31,7 @@ import {
   onSnapshot,
 } from "firebase/firestore"; // Import necessary Firestore functions
 import { getAuth } from "firebase/auth";
+import { Ionicons } from "@expo/vector-icons";
 
 const Order = () => {
   const router = useRouter();
@@ -63,6 +67,8 @@ const Order = () => {
   const [isPayPalVisible, setIsPayPalVisible] = useState(false);
   const [isPaymentProcessing, setIsPaymentProcessing] = useState(false);
   const [confirmationMessage, setConfirmationMessage] = useState("");
+  const [specialRemarks, setSpecialRemarks] = useState("");
+  const remarksInputRef = useRef(null);
 
   useEffect(() => {
     if (parsedItems.length > 0 && !confirmed) {
@@ -77,6 +83,14 @@ const Order = () => {
     setOrderItems(parsedItems);
     setIsModalVisible(true);
   }, [parsedItems]);
+  useEffect(() => {
+    if (isModalVisible) {
+      // Focus on the TextInput when the modal opens
+      setTimeout(() => {
+        remarksInputRef.current?.focus();
+      }, 100); // Delay to ensure modal is fully rendered
+    }
+  }, [isModalVisible]);
 
   // Function to fetch the order status
   const fetchOrderStatus = async (userId) => {
@@ -118,20 +132,42 @@ const Order = () => {
     if (!item || !item.name) {
       return null; // Avoid rendering if item is undefined or does not have an id
     }
+
+    const handleDeleteItem = () => {
+      // Clear the parsed items
+      setOrderItems([]); // Clear the order items
+      setConfirmed(false); // Reset confirmation state
+      setIsModalVisible(false); // Close the modal if open
+      router.replace("order", { selectedItems: "[]", totalPrice: "0" }); // Navigate to order with empty params
+    };
+
+    console.log("Rendering image URL:", item.image);
     return (
       <View style={styles.itemContainer}>
-        <Text style={styles.itemName}>{item.name}</Text>
-        {item.ingredients && item.ingredients.length > 0 && (
-          <Text style={styles.itemCustomization}>
-            Ingredients:{" "}
-            {item.ingredients
-              .map(
-                (ingredient) => `${ingredient.name} x ${ingredient.quantity}`
-              )
-              .join(",")}
-          </Text>
+        <Image
+          source={{ uri: item.image }} // Use the image URL from the item
+          style={styles.itemImage}
+          resizeMode="contain" // Apply styles for the image
+        />
+        <View style={styles.itemDetails}>
+          <Text style={styles.itemName}>{item.name}</Text>
+          {item.ingredients && item.ingredients.length > 0 && (
+            <Text style={styles.itemCustomization}>
+              Ingredients:{" "}
+              {item.ingredients
+                .map(
+                  (ingredient) => `${ingredient.name} x ${ingredient.quantity}`
+                )
+                .join(",")}
+            </Text>
+          )}
+          <Text style={styles.itemPrice}>₱{item.totalPrice}</Text>
+        </View>
+        {!confirmed && ( // Only show delete button if not confirmed
+          <TouchableOpacity onPress={handleDeleteItem}>
+            <Ionicons name="trash" size={24} color="#333" />
+          </TouchableOpacity>
         )}
-        <Text style={styles.itemPrice}>₱{item.totalPrice}</Text>
       </View>
     );
   };
@@ -168,6 +204,7 @@ const Order = () => {
             quantity: ingredient.quantity || 0,
           })),
           totalPrice: formattedTotalPrice,
+          specialRemarks: specialRemarks,
           createdAt: new Date(),
         };
 
@@ -237,10 +274,9 @@ const Order = () => {
       await deleteDoc(doc.ref);
     });
 
-    // After transferring the order, reset the state to show no orders
-    router.replace("order", { selectedItems: "[]", totalPrice: "0" });
+    // After transferring the order, navigate back to the home screen
+    router.replace("home"); // Change this line to navigate to the home screen
   };
-
   return (
     <SafeAreaView style={styles.container}>
       {!orderInProgress ? (
@@ -266,6 +302,9 @@ const Order = () => {
             renderItem={renderSelectedItem}
             style={styles.list}
           />
+          <Text style={styles.specialRemarks}>
+            Special Remarks: {specialRemarks || "None"}
+          </Text>
           <Text style={styles.totalPrice}>
             Total Price: ₱{formattedTotalPrice.toFixed(2)}
           </Text>
@@ -284,28 +323,65 @@ const Order = () => {
         >
           <View style={styles.modalOverlay}>
             <View style={styles.modalContainer}>
-              <Text style={styles.modalTitle}>Review Your Order</Text>
               <FlatList
-                data={orderItems}
-                keyExtractor={(item) => item.id.toString()}
-                renderItem={renderSelectedItem}
-                style={styles.list}
+                data={[
+                  { key: "title", title: "Order Confirmation" },
+                  {
+                    key: "address",
+                    title:
+                      "Pick-up Address: Unit B VSL Bldg., 222 EJ Valdez St., Brgy. Ninoy Aquino, Marisol Subd., Angeles City",
+                  },
+                  ...orderItems.map((item) => ({
+                    key: item.id.toString(),
+                    item,
+                  })),
+                  {
+                    key: "total",
+                    title: `Total Price: ₱${formattedTotalPrice.toFixed(2)}`,
+                  },
+                  { key: "remarks", title: "Special Remarks" },
+                ]}
+                renderItem={({ item }) => {
+                  if (item.key === "title") {
+                    return <Text style={styles.modalTitle}>{item.title}</Text>;
+                  } else if (item.key === "address") {
+                    return <Text style={styles.cafeAddress}>{item.title}</Text>;
+                  } else if (item.key === "total") {
+                    return <Text style={styles.totalPrice}>{item.title}</Text>;
+                  } else if (item.key === "remarks") {
+                    return (
+                      <TextInput
+                        ref={remarksInputRef} // Attach the ref to the TextInput
+                        style={styles.remarksInput}
+                        placeholder="Special Remarks"
+                        value={specialRemarks}
+                        onChangeText={setSpecialRemarks}
+                      />
+                    );
+                  } else {
+                    return renderSelectedItem({ item: item.item });
+                  }
+                }}
+                keyExtractor={(item) => item.key}
+                ListFooterComponent={() => (
+                  <>
+                    <TouchableOpacity
+                      style={styles.confirmButton}
+                      onPress={handleConfirmPayment}
+                    >
+                      <Text style={styles.confirmButtonText}>
+                        Confirm Payment
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.closeButton}
+                      onPress={handleCancelOrder}
+                    >
+                      <Text style={styles.closeButtonText}>Cancel</Text>
+                    </TouchableOpacity>
+                  </>
+                )}
               />
-              <Text style={styles.totalPrice}>
-                Total Price: ₱{formattedTotalPrice.toFixed(2)}
-              </Text>
-              <TouchableOpacity
-                style={styles.confirmButton}
-                onPress={handleConfirmPayment}
-              >
-                <Text style={styles.confirmButtonText}>Confirm Payment</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.closeButton}
-                onPress={handleCancelOrder}
-              >
-                <Text style={styles.closeButtonText}>Cancel</Text>
-              </TouchableOpacity>
             </View>
           </View>
         </Modal>
@@ -352,11 +428,28 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: "Montserrat_700Bold",
   },
+  specialRemarks: {
+    fontSize: 14,
+    fontFamily: "Montserrat_700Bold",
+    marginTop: 5,
+    color: "#4f3830",
+  },
   itemContainer: {
-    flexDirection: "column",
+    flexDirection: "row", // Align items in a row
     paddingVertical: 10,
     borderBottomWidth: 1,
     borderBottomColor: "#4f3830",
+    alignItems: "center", // Center align items vertically
+  },
+  itemImage: {
+    width: 60, // Set a fixed width for the image
+    height: 60, // Set a fixed height for the image
+    borderRadius: 50, // Optional: make the image circular
+    marginRight: 15, // Space between the image and text
+  },
+  itemDetails: {
+    flex: 1,
+    marginRight: 10, // Allow the text to take up remaining space
   },
   itemName: {
     fontSize: 16,
@@ -418,9 +511,9 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0, 0, 0, 0.6)",
   },
   modalContainer: {
-    width: "85%",
+    width: "100%",
+    height: "100%", // Set a fixed height
     backgroundColor: "#e5dcd3",
-    borderRadius: 20,
     padding: 20,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
@@ -444,6 +537,23 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 16,
     fontFamily: "Montserrat_700Bold",
+  },
+
+  cafeAddress: {
+    fontSize: 14,
+    fontFamily: "Montserrat_400Regular",
+    marginBottom: 10,
+    color: "#4f3830",
+  },
+  remarksInput: {
+    height: 60,
+    borderColor: "#4f3830",
+    borderWidth: 1,
+    borderRadius: 5,
+    fontFamily: "Montserrat_400Regular",
+    paddingHorizontal: 10,
+    marginBottom: 20,
+    marginTop: 20,
   },
 });
 
