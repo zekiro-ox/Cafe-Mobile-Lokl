@@ -444,7 +444,7 @@ const styles = StyleSheet.create({
   itemImage: {
     width: 60, // Set a fixed width for the image
     height: 60, // Set a fixed height for the image
-    borderRadius: 50, // Optional: make the image circular
+    borderRadius: 30, // Optional: make the image circular
     marginRight: 15, // Space between the image and text
   },
   itemDetails: {
