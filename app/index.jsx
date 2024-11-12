@@ -10,6 +10,8 @@ import { ActivityIndicator } from "react-native"; // Use this for loading indica
 import { SafeAreaView } from "react-native-safe-area-context";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useEffect, useState } from "react";
+import { onAuthStateChanged } from "firebase/auth";
+import { auth } from "./config/firebase"; // Ensure you have the correct path
 
 export default function App() {
   const [fontsLoaded] = useFonts({
@@ -23,16 +25,31 @@ export default function App() {
   useEffect(() => {
     const checkLoginStatus = async () => {
       const loggedIn = await AsyncStorage.getItem("isLoggedIn");
-      router.push("/home");
       setIsLoggedIn(loggedIn === "true");
       setIsLoading(false);
+
+      // Navigate to home only if logged in
+      if (loggedIn === "true") {
+        router.push("/home");
+      } else {
+        router.push("/sign-in"); // Navigate to sign-in if not logged in
+      }
     };
 
-    checkLoginStatus();
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        setIsLoggedIn(true);
+        router.push("/home");
+      } else {
+        checkLoginStatus(); // Check AsyncStorage if Firebase user is not logged in
+      }
+    });
+
+    return () => unsubscribe(); // Cleanup subscription on unmount
   }, []);
 
   if (isLoading) {
-    return null; // You can return a loading indicator here
+    return <ActivityIndicator size="large" color="#675148" />;
   }
 
   // Show loading spinner while fonts are loading or while checking login status
