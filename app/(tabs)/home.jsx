@@ -372,7 +372,7 @@ const Home = () => {
     const auth = getAuth(); // Get the Firebase Auth instance
     try {
       await signOut(auth);
-      await AsyncStorage.removeItem("userToken"); // Sign out the user
+      await AsyncStorage.removeItem("isLoggedIn"); // Sign out the user
       // Perform any necessary logout logic here (e.g., clearing user data)
 
       // Navigate to the sign-in screen

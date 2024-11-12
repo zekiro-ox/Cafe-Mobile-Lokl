@@ -23,6 +23,7 @@ import {
 } from "firebase/auth";
 import Toast from "react-native-toast-message";
 import CheckBox from "react-native-check-box";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 // Custom toast configuration
 const toastConfig = {
@@ -63,6 +64,7 @@ export default function SignIn() {
 
     try {
       await signInWithEmailAndPassword(auth, email, password);
+      await AsyncStorage.setItem("isLoggedIn", "true");
       setLoading(false);
       Toast.show({
         type: "success",

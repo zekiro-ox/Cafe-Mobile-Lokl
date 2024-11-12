@@ -16,26 +16,24 @@ export default function App() {
     Montserrat_400Regular,
     Montserrat_700Bold,
   });
-  const [isLoggedIn, setIsLoggedIn] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
     const checkLoginStatus = async () => {
-      try {
-        const userToken = await AsyncStorage.getItem("userToken"); // Replace 'userToken' with your actual key
-        if (userToken) {
-          setIsLoggedIn(true);
-          router.push("/home"); // Redirect to home if logged in
-        } else {
-          setIsLoggedIn(false);
-        }
-      } catch (error) {
-        console.error("Error checking login status:", error);
-      }
+      const loggedIn = await AsyncStorage.getItem("isLoggedIn");
+      router.push("/home");
+      setIsLoggedIn(loggedIn === "true");
+      setIsLoading(false);
     };
 
     checkLoginStatus();
   }, []);
+
+  if (isLoading) {
+    return null; // You can return a loading indicator here
+  }
 
   // Show loading spinner while fonts are loading or while checking login status
   if (!fontsLoaded || isLoggedIn === null) {
