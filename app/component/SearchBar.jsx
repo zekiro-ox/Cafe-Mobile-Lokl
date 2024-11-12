@@ -8,6 +8,7 @@ import {
   Modal,
   FlatList,
   Image,
+  Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
@@ -23,7 +24,14 @@ import CustomizationModal from "./CustomizationModal";
 import ProfileModal from "./ProfileModal"; // Import the ProfileModal
 import { useRouter } from "expo-router";
 import { getAuth } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
+import {
+  doc,
+  getDoc,
+  query,
+  collection,
+  where,
+  getDocs,
+} from "firebase/firestore";
 import { db } from "../config/firebase"; // Adjust the path as necessary
 import { RadioButton } from "react-native-paper";
 
@@ -76,6 +84,23 @@ const SearchBar = ({
       ...prevProfile,
       ...updatedProfile,
     }));
+  };
+
+  const checkExistingOrders = async () => {
+    const auth = getAuth();
+    const user = auth.currentUser;
+
+    if (user) {
+      const userId = user.uid;
+      const ordersQuery = query(
+        collection(db, "order"),
+        where("uid", "==", userId)
+      );
+      const querySnapshot = await getDocs(ordersQuery);
+
+      return !querySnapshot.empty; // Returns true if there are existing orders
+    }
+    return false;
   };
 
   const toggleDropdown = () => {
@@ -288,7 +313,17 @@ const SearchBar = ({
             </Text>
             <TouchableOpacity
               style={styles.checkoutButton}
-              onPress={() => {
+              onPress={async () => {
+                const hasExistingOrders = await checkExistingOrders();
+
+                if (hasExistingOrders) {
+                  Alert.alert(
+                    "Checkout Not Allowed",
+                    "You have existing orders. Please wait for the process to be completed",
+                    [{ text: "OK" }]
+                  );
+                  return; // Prevent proceeding to checkout
+                }
                 const selectedItems = cartItems.filter((item) =>
                   selectedCartItems.includes(item.id)
                 );

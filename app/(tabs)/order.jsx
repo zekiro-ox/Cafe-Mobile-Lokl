@@ -69,6 +69,7 @@ const Order = () => {
   const [confirmationMessage, setConfirmationMessage] = useState("");
   const [specialRemarks, setSpecialRemarks] = useState("");
   const remarksInputRef = useRef(null);
+  const [hasOrders, setHasOrders] = useState(false);
 
   useEffect(() => {
     if (parsedItems.length > 0 && !confirmed) {
@@ -116,12 +117,17 @@ const Order = () => {
       const q = query(collection(db, "order"), where("uid", "==", userId));
 
       const unsubscribe = onSnapshot(q, (querySnapshot) => {
-        querySnapshot.forEach((doc) => {
-          const orderData = doc.data();
-          if (orderData.status) {
-            setConfirmationMessage(orderData.status);
-          }
-        });
+        if (!querySnapshot.empty) {
+          setHasOrders(true);
+          querySnapshot.forEach((doc) => {
+            const orderData = doc.data();
+            if (orderData.status) {
+              setConfirmationMessage(orderData.status);
+            }
+          });
+        } else {
+          setHasOrders(false); // No orders found
+        }
       });
 
       return () => unsubscribe(); // Cleanup listener on unmount
@@ -259,23 +265,28 @@ const Order = () => {
     }
 
     const userId = user.uid;
+    try {
+      // Fetch the order data from the 'order' collection
+      const q = query(collection(db, "order"), where("uid", "==", userId));
+      const querySnapshot = await getDocs(q);
 
-    // Fetch the order data from the 'order' collection
-    const q = query(collection(db, "order"), where("uid", "==", userId));
-    const querySnapshot = await getDocs(q);
+      querySnapshot.forEach(async (doc) => {
+        const orderData = doc.data();
 
-    querySnapshot.forEach(async (doc) => {
-      const orderData = doc.data();
+        // Add the order to the 'history' collection
+        await addDoc(collection(db, "history"), orderData);
 
-      // Add the order to the 'history' collection
-      await addDoc(collection(db, "history"), orderData);
+        // Delete the order from the 'order' collection
+        await deleteDoc(doc.ref);
+      });
 
-      // Delete the order from the 'order' collection
-      await deleteDoc(doc.ref);
-    });
-
-    // After transferring the order, navigate back to the home screen
-    router.replace("home"); // Change this line to navigate to the home screen
+      // After transferring the order, navigate back to the home screen
+      router.replace("home"); // Ensure this line is executed after all operations
+    } catch (error) {
+      console.error("Error processing order:", error);
+    } finally {
+      setOrderInProgress(false); // Reset the order in progress state
+    }
   };
   return (
     <SafeAreaView style={styles.container}>
@@ -291,14 +302,14 @@ const Order = () => {
             <Text style={styles.backToHomeButtonText}>Browse</Text>
           </TouchableOpacity>
         </View>
-      ) : confirmed ? (
+      ) : hasOrders ? ( // Check for hasOrders instead of confirmed
         <View style={styles.confirmationContainer}>
           <Text style={styles.confirmationMessage}>{confirmationMessage}</Text>
           <FlatList
             data={orderItems}
             keyExtractor={(item) =>
               item.id ? item.id.toString() : Math.random().toString()
-            } // Updated keyExtractor
+            }
             renderItem={renderSelectedItem}
             style={styles.list}
           />

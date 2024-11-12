@@ -1,14 +1,12 @@
 // WeatherAPI.js
 import axios from "axios";
-
-const API_KEY = "1b205e9e853f47b2baa120744242409"; // Your Weather API key
-const BASE_URL = "http://api.weatherapi.com/v1"; // Base URL for WeatherAPI
+// Base URL for WeatherAPI
 
 // Function to fetch weather data for a given city
 export const getWeatherData = async (city) => {
   try {
     const response = await axios.get(
-      `http://api.weatherapi.com/v1/current.json?key=1b205e9e853f47b2baa120744242409&q=${city}`
+      `https://api.weatherapi.com/v1/current.json?key=1b205e9e853f47b2baa120744242409&q=${city}`
     );
     return response.data; // Return the weather data
   } catch (error) {
