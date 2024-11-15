@@ -10,6 +10,7 @@ import {
   TextInput,
   ScrollView,
   Animated,
+  BackHandler,
 } from "react-native";
 import React, { useEffect, useState, useRef } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -18,6 +19,7 @@ import SearchBar from "../component/SearchBar";
 import CustomizationModal from "../component/CustomizationModal";
 import Icon from "react-native-vector-icons/FontAwesome";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useFonts } from "expo-font";
 import {
   Montserrat_400Regular,
@@ -174,6 +176,20 @@ const Home = () => {
       setShowAIAlert(false); // Set the alert visibility to false after the animation
     });
   };
+  useEffect(() => {
+    const backAction = () => {
+      // Prevent the back button from doing anything
+      return true; // Returning true prevents the default back action
+    };
+
+    const backHandler = BackHandler.addEventListener(
+      "hardwareBackPress",
+      backAction
+    );
+
+    // Cleanup the event listener on component unmount
+    return () => backHandler.remove();
+  }, []);
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -583,7 +599,11 @@ const Home = () => {
           style={styles.aiIconContainer}
           onPress={handleAIIconClick}
         >
-          <FontAwesome6 name="robot" size={30} color="#d1c2b4" />
+          <MaterialCommunityIcons
+            name="frequently-asked-questions"
+            size={30}
+            color="#d1c2b4"
+          />
         </TouchableOpacity>
       </View>
       <CustomizationModal
@@ -596,7 +616,7 @@ const Home = () => {
       <Modal visible={isChatboxModalVisible} animationType="slide">
         <View style={styles.chatboxModalContainer}>
           <View style={styles.chatboxModalHeader}>
-            <Text style={styles.chatboxModalTitle}>Ask LokAI</Text>
+            <Text style={styles.chatboxModalTitle}>FAQ</Text>
             <TouchableOpacity
               style={styles.chatboxModalCloseButton}
               onPress={() => setChatboxModalVisible(false)}

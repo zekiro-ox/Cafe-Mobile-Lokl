@@ -32,6 +32,23 @@ import {
 } from "firebase/firestore"; // Import necessary Firestore functions
 import { getAuth } from "firebase/auth";
 import { Ionicons } from "@expo/vector-icons";
+import { Dropdown } from "react-native-element-dropdown";
+import Toast from "react-native-toast-message";
+
+const toastConfig = {
+  success: ({ text1, text2 }) => (
+    <View style={styles.toastContainer}>
+      <Text style={styles.toastTitle}>{text1}</Text>
+      <Text style={styles.toastMessage}>{text2}</Text>
+    </View>
+  ),
+  error: ({ text1, text2 }) => (
+    <View style={styles.toastContainer}>
+      <Text style={styles.toastTitle}>{text1}</Text>
+      <Text style={styles.toastMessage}>{text2}</Text>
+    </View>
+  ),
+};
 
 const Order = () => {
   const router = useRouter();
@@ -70,6 +87,33 @@ const Order = () => {
   const [specialRemarks, setSpecialRemarks] = useState("");
   const remarksInputRef = useRef(null);
   const [hasOrders, setHasOrders] = useState(false);
+  const [pickupTime, setPickupTime] = useState("");
+  const [orderId, setOrderId] = useState("");
+
+  const pickupTimeOptions = [
+    { label: "11:00 AM", value: "11:00 AM" },
+    { label: "11:30 AM", value: "11:30 AM" },
+    { label: "12:00 PM", value: "12:00 PM" },
+    { label: "12:30 PM", value: "12:30 PM" },
+    { label: "1:00 PM", value: "01:00 PM" },
+    { label: "1:30 PM", value: "01:30 PM" },
+    { label: "2:00 PM", value: "02:00 PM" },
+    { label: "2:30 PM", value: "02:30 PM" },
+    { label: "3:00 PM", value: "03:00 PM" },
+    { label: "3:30 PM", value: "03:30 PM" },
+    { label: "4:00 PM", value: "04:00 PM" },
+    { label: "4:30 PM", value: "04:30 PM" },
+    { label: "5:00 PM", value: "05:00 PM" },
+    { label: "5:30 PM", value: "05:30 PM" },
+    { label: "6:00 PM", value: "06:00 PM" },
+    { label: "6:30 PM", value: "06:30 PM" },
+    { label: "7:00 PM", value: "07:00 PM" },
+    { label: "7:30 PM", value: "07:30 PM" },
+    { label: "8:00 PM", value: "08:00 PM" },
+    { label: "8:30 PM", value: "08:30 PM" },
+    { label: "9:00 PM", value: "09:00 PM" },
+    { label: "9:30 PM", value: "09:30 PM" },
+  ];
 
   useEffect(() => {
     if (parsedItems.length > 0 && !confirmed) {
@@ -179,6 +223,14 @@ const Order = () => {
   };
 
   const handleConfirmPayment = () => {
+    if (!pickupTime) {
+      Toast.show({
+        type: "error",
+        text1: "Incomplete Field",
+        text2: "Select a Pick-up Time!",
+      });
+      return;
+    }
     setIsModalVisible(false);
     setIsPayPalVisible(true); // Show PayPal payment component
   };
@@ -211,6 +263,7 @@ const Order = () => {
           })),
           totalPrice: formattedTotalPrice,
           specialRemarks: specialRemarks,
+          pickupTime: pickupTime,
           createdAt: new Date(),
         };
 
@@ -218,6 +271,8 @@ const Order = () => {
         const orderDocRef = await addDoc(collection(db, "order"), orderData);
 
         // Fetch the order document data
+
+        setOrderId(orderDocRef.id);
         const orderDoc = await getDoc(orderDocRef);
         const orderDataFetched = orderDoc.data();
 
@@ -226,7 +281,7 @@ const Order = () => {
           setConfirmationMessage(orderDataFetched.status);
         } else {
           setConfirmationMessage(
-            "Order confirmed! It will take 20 mins before availability for pick up."
+            "Order confirmed! You can pick it up at your scheduled time."
           );
         }
       }
@@ -305,6 +360,7 @@ const Order = () => {
       ) : hasOrders ? ( // Check for hasOrders instead of confirmed
         <View style={styles.confirmationContainer}>
           <Text style={styles.confirmationMessage}>{confirmationMessage}</Text>
+          <Text style={styles.orderIdText}>Order ID: {orderId}</Text>
           <FlatList
             data={orderItems}
             keyExtractor={(item) =>
@@ -316,6 +372,7 @@ const Order = () => {
           <Text style={styles.specialRemarks}>
             Special Remarks: {specialRemarks || "None"}
           </Text>
+          <Text style={styles.specialRemarks}>Pick-up Time: {pickupTime}</Text>
           <Text style={styles.totalPrice}>
             Total Price: ₱{formattedTotalPrice.toFixed(2)}
           </Text>
@@ -333,8 +390,9 @@ const Order = () => {
           onRequestClose={handleCancelOrder}
         >
           <View style={styles.modalOverlay}>
-            <View style={styles.modalContainer}>
+            <View style={[styles.modalContainer, { overflow: "visible" }]}>
               <FlatList
+                keyboardShouldPersistTaps="handled" // Allows taps on dropdown without dismissing it
                 data={[
                   { key: "title", title: "Order Confirmation" },
                   {
@@ -362,7 +420,7 @@ const Order = () => {
                   } else if (item.key === "remarks") {
                     return (
                       <TextInput
-                        ref={remarksInputRef} // Attach the ref to the TextInput
+                        ref={remarksInputRef}
                         style={styles.remarksInput}
                         placeholder="Special Remarks"
                         value={specialRemarks}
@@ -373,12 +431,33 @@ const Order = () => {
                     return renderSelectedItem({ item: item.item });
                   }
                 }}
+                ListHeaderComponent={() => (
+                  <>
+                    <Text style={styles.pickupLabel}>Pick-Up Time:</Text>
+                    <Dropdown
+                      style={styles.dropdown}
+                      containerStyle={styles.dropdownContainer}
+                      data={pickupTimeOptions}
+                      labelField="label"
+                      valueField="value"
+                      placeholder="Select Time"
+                      value={pickupTime}
+                      onChange={(item) => {
+                        setPickupTime(item.value);
+                      }}
+                    />
+                  </>
+                )}
                 keyExtractor={(item) => item.key}
                 ListFooterComponent={() => (
                   <>
                     <TouchableOpacity
-                      style={styles.confirmButton}
+                      style={[
+                        styles.confirmButton,
+                        !pickupTime && { backgroundColor: "#999" }, // Disabled color
+                      ]}
                       onPress={handleConfirmPayment}
+                      disabled={!pickupTime} // Disable button if no time is selected
                     >
                       <Text style={styles.confirmButtonText}>
                         Confirm Payment
@@ -565,6 +644,51 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     marginBottom: 20,
     marginTop: 20,
+  },
+  dropdown: {
+    height: 50,
+    borderColor: "#4f3830",
+    borderWidth: 1,
+    borderRadius: 5,
+    paddingHorizontal: 10,
+    fontFamily: "Montserrat_400Regular",
+    marginBottom: 20,
+    zIndex: 1, // Ensure dropdown is above other components
+  },
+  dropdownContainer: {
+    backgroundColor: "#eee", // Matches the dropdown for seamless design
+    borderRadius: 5,
+    borderColor: "#4f3830",
+    fontFamily: "Montserrat_400Regular",
+    elevation: 5, // Optional for shadow effect
+  },
+  pickupLabel: {
+    fontSize: 16,
+    fontFamily: "Montserrat_700Bold",
+    color: "#4f3830",
+    marginBottom: 5,
+  },
+  toastContainer: {
+    backgroundColor: "#4f3830",
+    padding: 20,
+    borderRadius: 8,
+    margin: 10,
+  },
+  toastTitle: {
+    color: "#d1c2b4",
+    fontFamily: "Montserrat_700Bold",
+    fontSize: 16,
+  },
+  toastMessage: {
+    color: "#fff",
+    fontFamily: "Montserrat_400Regular",
+    fontSize: 14,
+  },
+  orderIdText: {
+    fontSize: 16,
+    fontFamily: "Montserrat_700Bold",
+    marginBottom: 10,
+    color: "#4f3830",
   },
 });
 

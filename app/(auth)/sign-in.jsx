@@ -61,7 +61,6 @@ export default function SignIn() {
 
   const handleSignIn = async () => {
     setLoading(true);
-
     try {
       await signInWithEmailAndPassword(auth, email, password);
       await AsyncStorage.setItem("isLoggedIn", "true");

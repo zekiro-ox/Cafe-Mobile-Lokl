@@ -49,7 +49,8 @@ export default function SignUp() {
     Montserrat_700Bold,
   });
 
-  const isValidEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  const isValidEmail = (email) =>
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) && email.endsWith("@gmail.com");
   const isValidPassword = (password) =>
     /^(?=.*[!@#$%^&*])[A-Za-z\d!@#$%^&*]{12,16}$/.test(password);
 
@@ -104,7 +105,7 @@ export default function SignUp() {
       Toast.show({
         type: "success",
         text1: "Account Created",
-        text2: "Your account was created successfully!",
+        text2: "A verification email has been sent to your Gmail address.",
       });
 
       setTimeout(() => {

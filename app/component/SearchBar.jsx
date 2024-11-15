@@ -251,18 +251,6 @@ const SearchBar = ({
         {isDropdownVisible && (
           <View style={styles.dropdownMenu}>
             <TouchableOpacity
-              onPress={toggleProfileModal}
-              style={styles.dropdownItemContainer}
-            >
-              <AntDesign
-                name="profile"
-                size={16}
-                color="#737373"
-                style={styles.logoutIcon}
-              />
-              <Text style={styles.dropdownItem}>Profile</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
               onPress={onLogoutPress}
               style={styles.dropdownItemContainer}
             >

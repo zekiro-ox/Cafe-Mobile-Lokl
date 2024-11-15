@@ -27,6 +27,22 @@ import {
 import { useFonts } from "expo-font";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import Toast from "react-native-toast-message";
+
+const toastConfig = {
+  success: ({ text1, text2 }) => (
+    <View style={styles.toastContainer}>
+      <Text style={styles.toastTitle}>{text1}</Text>
+      <Text style={styles.toastMessage}>{text2}</Text>
+    </View>
+  ),
+  error: ({ text1, text2 }) => (
+    <View style={styles.toastContainer}>
+      <Text style={styles.toastTitle}>{text1}</Text>
+      <Text style={styles.toastMessage}>{text2}</Text>
+    </View>
+  ),
+};
 
 const History = () => {
   const [historyData, setHistoryData] = useState([]);
@@ -216,10 +232,20 @@ const History = () => {
       try {
         // Update the user's name and email in Firestore
         await updateDoc(userDocRef, { name, email });
-        setUserProfile({ ...userProfile, name, email }); // Update local state
+        setUserProfile({ ...userProfile, name, email });
+        Toast.show({
+          type: "success",
+          text1: "Updated!",
+          text2: "Successfully save changes.",
+        }); // Update local state
         setIsEditingName(false); // Exit edit mode
       } catch (error) {
         console.error("Error updating document: ", error);
+        Toast.show({
+          type: "error",
+          text1: "Failed Updating!",
+          text2: error.message,
+        });
       }
     }
   };
@@ -238,9 +264,19 @@ const History = () => {
           feedback: feedback,
         });
         console.log("Feedback sent:", feedback);
+        Toast.show({
+          type: "success",
+          text1: "Sent Successfully",
+          text2: "Feedback Sent!",
+        });
         setFeedback(""); // Clear the feedback input
       } catch (error) {
         console.error("Error sending feedback: ", error);
+        Toast.show({
+          type: "error",
+          text1: "Failed Sending Feedback",
+          text2: error.message,
+        });
       }
     }
   };
@@ -386,6 +422,7 @@ const History = () => {
           style={styles.list}
         />
       )}
+      <Toast config={toastConfig} />
     </SafeAreaView>
   );
 };
@@ -509,6 +546,22 @@ const styles = StyleSheet.create({
     fontFamily: "Montserrat_700Bold",
     marginVertical: 10,
     color: "#4f3830",
+  },
+  toastContainer: {
+    backgroundColor: "#4f3830",
+    padding: 20,
+    borderRadius: 8,
+    margin: 10,
+  },
+  toastTitle: {
+    color: "#d1c2b4",
+    fontFamily: "Montserrat_700Bold",
+    fontSize: 16,
+  },
+  toastMessage: {
+    color: "#fff",
+    fontFamily: "Montserrat_400Regular",
+    fontSize: 14,
   },
 });
 
