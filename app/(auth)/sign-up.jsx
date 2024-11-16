@@ -109,8 +109,7 @@ export default function SignUp() {
       });
 
       setTimeout(() => {
-        setLoading(false);
-        router.push("/sign-in");
+        router.push("/home");
       }, 3000);
     } catch (error) {
       setLoading(false);

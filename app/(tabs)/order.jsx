@@ -483,6 +483,7 @@ const Order = () => {
           onSuccess={handlePaymentSuccess}
         />
       )}
+      <Toast config={toastConfig} />
     </SafeAreaView>
   );
 };

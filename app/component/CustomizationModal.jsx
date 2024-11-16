@@ -17,6 +17,8 @@ import {
   Montserrat_700Bold,
 } from "@expo-google-fonts/montserrat";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+import Ionicons from "@expo/vector-icons/Ionicons";
+import { useRouter } from "expo-router";
 
 const { height: screenHeight } = Dimensions.get("window");
 
@@ -36,6 +38,7 @@ const CustomizationModal = ({
   onAddToCart,
   product = {},
 }) => {
+  const router = useRouter();
   if (!product) {
     return null; // Or render a loading state or an error message
   }
@@ -116,6 +119,37 @@ const CustomizationModal = ({
       ingredients: ingredientsToAdd,
     });
     onClose();
+  };
+
+  const handleOrderNow = () => {
+    const totalPrice = calculateTotalPrice();
+    const ingredientsToAdd = Object.entries(
+      customization.selectedIngredients
+    ).map(([name, { quantity, price, recommendedAmount }]) => ({
+      name,
+      quantity,
+      price,
+      recommendedAmount,
+    }));
+
+    // Serialize item data
+    const serializedItem = {
+      id: product.id,
+      name: productName,
+      totalPrice,
+      quantity: customization.productQuantity,
+      ingredients: ingredientsToAdd,
+    };
+
+    // Navigate to the Order page and pass the serialized data
+    router.push({
+      pathname: "order",
+      params: {
+        selectedItems: JSON.stringify([serializedItem]),
+        totalPrice: totalPrice.toFixed(2),
+      },
+    });
+    onClose(); // Close the modal after ordering
   };
 
   const updateIngredientQuantity = (ingredientName, increment) => {
@@ -267,6 +301,9 @@ const CustomizationModal = ({
     <Modal visible={visible} animationType="slide">
       <SafeAreaView style={styles.container}>
         <StatusBar translucent backgroundColor="transparent" />
+        <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+          <Ionicons name="arrow-back-circle" size={40} color="#4f3830" />
+        </TouchableOpacity>
         <ScrollView contentContainerStyle={styles.scrollContainer}>
           {product.image && (
             <Image
@@ -307,8 +344,8 @@ const CustomizationModal = ({
             <TouchableOpacity style={styles.button} onPress={handleAddToCart}>
               <Text style={styles.buttonText}>Add to Cart</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.button} onPress={onClose}>
-              <Text style={styles.buttonText}>Cancel</Text>
+            <TouchableOpacity style={styles.button} onPress={handleOrderNow}>
+              <Text style={styles.buttonText}>Order Now</Text>
             </TouchableOpacity>
           </View>
         </ScrollView>
@@ -322,6 +359,12 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "flex-start",
     backgroundColor: "#cfc1b1",
+  },
+  closeButton: {
+    position: "absolute",
+    top: 8,
+    left: 25,
+    zIndex: 1,
   },
   productImage: {
     width: "100%",
