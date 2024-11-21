@@ -6,6 +6,7 @@ const AuthLayout = () => {
   return (
     <Stack
       screenOptions={{
+        gestureEnabled: false, // Disable swipe gestures
         headerShown: false, // This hides the header for all screens in this stack
       }}
     >

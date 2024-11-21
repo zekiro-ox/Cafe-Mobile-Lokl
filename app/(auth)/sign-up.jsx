@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   Image,
   ActivityIndicator,
+  BackHandler,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useFonts } from "expo-font";
@@ -15,8 +16,12 @@ import {
 } from "@expo-google-fonts/montserrat";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Link, useRouter } from "expo-router";
-import { getAuth, createUserWithEmailAndPassword } from "firebase/auth";
-import { db } from "../config/firebase";
+import {
+  getAuth,
+  createUserWithEmailAndPassword,
+  sendEmailVerification,
+} from "firebase/auth";
+import { db, auth } from "../config/firebase";
 import { doc, setDoc } from "firebase/firestore";
 import Toast from "react-native-toast-message";
 
@@ -48,6 +53,21 @@ export default function SignUp() {
     Montserrat_400Regular,
     Montserrat_700Bold,
   });
+
+  useEffect(() => {
+    const backAction = () => {
+      // Disable back button; return true prevents default behavior
+      return true;
+    };
+
+    const backHandler = BackHandler.addEventListener(
+      "hardwareBackPress",
+      backAction
+    );
+
+    // Cleanup listener on unmount
+    return () => backHandler.remove();
+  }, []);
 
   const isValidEmail = (email) =>
     /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) && email.endsWith("@gmail.com");
@@ -87,7 +107,6 @@ export default function SignUp() {
       return;
     }
 
-    const auth = getAuth();
     try {
       setLoading(true);
       const userCredential = await createUserWithEmailAndPassword(
@@ -97,19 +116,23 @@ export default function SignUp() {
       );
       const user = userCredential.user;
 
+      await sendEmailVerification(user); // Send verification email
+
+      Toast.show({
+        type: "success",
+        text1: "Account Created",
+        text2: "A Verification Email Link has been sent to your Email Address.",
+        visibilityTime: 3000,
+      });
+
       await setDoc(doc(db, "customer", user.uid), {
         email: user.email,
         createdAt: new Date(),
       });
 
-      Toast.show({
-        type: "success",
-        text1: "Account Created",
-        text2: "A verification email has been sent to your Gmail address.",
-      });
-
+      // Navigate back to Sign-In after success
       setTimeout(() => {
-        router.push("/home");
+        router.push("/sign-in");
       }, 3000);
     } catch (error) {
       setLoading(false);

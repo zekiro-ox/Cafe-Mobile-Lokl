@@ -11,7 +11,24 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useEffect, useState } from "react";
 import { onAuthStateChanged } from "firebase/auth";
-import { auth } from "./config/firebase"; // Ensure you have the correct path
+import { auth } from "./config/firebase";
+import Toast from "react-native-toast-message";
+
+// Custom toast configuration
+const toastConfig = {
+  success: ({ text1, text2 }) => (
+    <View style={styles.toastContainer}>
+      <Text style={styles.toastTitle}>{text1}</Text>
+      <Text style={styles.toastMessage}>{text2}</Text>
+    </View>
+  ),
+  error: ({ text1, text2 }) => (
+    <View style={styles.toastContainer}>
+      <Text style={styles.toastTitle}>{text1}</Text>
+      <Text style={styles.toastMessage}>{text2}</Text>
+    </View>
+  ),
+}; // Ensure you have the correct path
 
 export default function App() {
   const [fontsLoaded] = useFonts({
@@ -25,27 +42,32 @@ export default function App() {
   useEffect(() => {
     const checkLoginStatus = async () => {
       const loggedIn = await AsyncStorage.getItem("isLoggedIn");
-      setIsLoggedIn(loggedIn === "true");
-      setIsLoading(false);
+      const unsubscribe = onAuthStateChanged(auth, (user) => {
+        if (user) {
+          if (user.emailVerified) {
+            setIsLoggedIn(true);
+            router.replace("/home");
+          } else {
+            Toast.show({
+              type: "error",
+              text1: "Email Not Verified",
+              text2: "Please verify your email before logging in.",
+            });
+            setIsLoggedIn(false);
+            router.replace("/sign-in");
+          }
+        } else if (loggedIn === "true") {
+          router.replace("/home");
+        } else {
+          router.replace("/sign-in");
+        }
+        setIsLoading(false);
+      });
 
-      // Navigate to home only if logged in
-      if (loggedIn === "true") {
-        router.push("/home");
-      } else {
-        router.push("/sign-in"); // Navigate to sign-in if not logged in
-      }
+      return () => unsubscribe();
     };
 
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        setIsLoggedIn(true);
-        router.push("/home");
-      } else {
-        checkLoginStatus(); // Check AsyncStorage if Firebase user is not logged in
-      }
-    });
-
-    return () => unsubscribe(); // Cleanup subscription on unmount
+    checkLoginStatus();
   }, []);
 
   if (isLoading) {
@@ -83,6 +105,25 @@ export default function App() {
           Go to Sign-in
         </Link>
       )}
+      <Toast config={toastConfig} />
     </SafeAreaView>
   );
 }
+const styles = {
+  toastContainer: {
+    backgroundColor: "#4f3830",
+    padding: 20,
+    borderRadius: 8,
+    margin: 10,
+  },
+  toastTitle: {
+    color: "#d1c2b4",
+    fontFamily: "Montserrat_700Bold",
+    fontSize: 16,
+  },
+  toastMessage: {
+    color: "#fff",
+    fontFamily: "Montserrat_400Regular",
+    fontSize: 14,
+  },
+};

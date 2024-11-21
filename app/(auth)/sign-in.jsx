@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   SafeAreaView,
   Alert,
+  BackHandler,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useFonts } from "expo-font";
@@ -59,10 +60,41 @@ export default function SignIn() {
     return <ActivityIndicator size="large" color="#675148" />;
   }
 
+  useEffect(() => {
+    const backAction = () => {
+      // Disable back button; return true prevents default behavior
+      return true;
+    };
+
+    const backHandler = BackHandler.addEventListener(
+      "hardwareBackPress",
+      backAction
+    );
+
+    // Cleanup listener on unmount
+    return () => backHandler.remove();
+  }, []);
+
   const handleSignIn = async () => {
     setLoading(true);
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      const userCredential = await signInWithEmailAndPassword(
+        auth,
+        email,
+        password
+      );
+      const user = userCredential.user;
+
+      if (!user.emailVerified) {
+        setLoading(false);
+        Toast.show({
+          type: "error",
+          text1: "Email Not Verified",
+          text2: "Please verify your email before logging in.",
+        });
+        return;
+      }
+
       await AsyncStorage.setItem("isLoggedIn", "true");
       setLoading(false);
       Toast.show({
