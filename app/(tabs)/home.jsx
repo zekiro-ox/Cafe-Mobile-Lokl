@@ -74,6 +74,10 @@ const Home = () => {
         "This is the address of LOKL: Unit B VSL Bldg., 222 EJ Valdez St.,Brgy. Ninoy Aquino,Marisol Subd.,Angeles City",
     },
     {
+      question: "What time does the cafe open?",
+      answer: "The cafe is open from 11 AM to 10 PM",
+    },
+    {
       question: "What are the lactose-free or non-dairy alternative milk?",
       answer:
         "Almond Milk: A smooth and creamy vanilla latte made with almond milk, perfect for those who are lactose intolerant. Soy Milk: soy milk for a slightly nutty and rich flavor.",
