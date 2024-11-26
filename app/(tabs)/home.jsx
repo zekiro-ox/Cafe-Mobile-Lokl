@@ -31,7 +31,7 @@ import AIProfileIcon from "../../assets/logo.png"; // Replace with your AI profi
 import { getWeatherData } from "../../api/WeatherAPI";
 import { useRouter } from "expo-router";
 import * as Location from "expo-location"; // Adjust the path accordingly
-import { collection, getDocs } from "firebase/firestore";
+import { collection, query, where, getDocs } from "firebase/firestore";
 import { db } from "../config/firebase";
 import { getAuth, signOut } from "firebase/auth";
 import AsyncStorage from "@react-native-async-storage/async-storage"; // Import Firebase Auth
@@ -198,11 +198,18 @@ const Home = () => {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const querySnapshot = await getDocs(collection(db, "products"));
+        // Define the collection reference and query
+        const productsRef = collection(db, "products");
+        const q = query(productsRef, where("available", "==", true));
+
+        // Execute the query
+        const querySnapshot = await getDocs(q);
+
+        // Map the fetched data
         const productsData = querySnapshot.docs.map((doc) => ({
           id: doc.id,
           ...doc.data(),
-          ingredients: doc.data().ingredients || [],
+          ingredients: doc.data().ingredients || [], // Handle missing ingredients field
         }));
         setProducts(productsData); // Set the fetched products to state
       } catch (error) {

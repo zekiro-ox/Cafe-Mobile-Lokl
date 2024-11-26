@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   View,
   Text,
@@ -55,25 +55,16 @@ export default function SignIn() {
   });
 
   const router = useRouter();
-
-  if (!fontsLoaded) {
-    return <ActivityIndicator size="large" color="#675148" />;
-  }
-
   useEffect(() => {
-    const backAction = () => {
-      // Disable back button; return true prevents default behavior
-      return true;
-    };
-
+    const backAction = () => true; // Disable back button
     const backHandler = BackHandler.addEventListener(
       "hardwareBackPress",
       backAction
     );
-
-    // Cleanup listener on unmount
-    return () => backHandler.remove();
+    return () => backHandler.remove(); // Cleanup
   }, []);
+
+  const memoizedLoadingState = useMemo(() => loading, [loading]);
 
   const handleSignIn = async () => {
     setLoading(true);
@@ -138,6 +129,9 @@ export default function SignIn() {
       });
     }
   };
+  if (!fontsLoaded) {
+    return <ActivityIndicator size="large" color="#675148" />;
+  }
 
   return (
     <SafeAreaView
@@ -191,7 +185,6 @@ export default function SignIn() {
             paddingRight: 50,
           }}
         />
-
         <TouchableOpacity
           style={{ position: "absolute", right: 10, top: 15 }}
           onPress={() => setIsPasswordVisible(!isPasswordVisible)}
@@ -223,7 +216,6 @@ export default function SignIn() {
             fontFamily: "Montserrat_400Regular",
           }}
         />
-
         <TouchableOpacity onPress={handleForgotPassword}>
           <Text
             style={{ color: "#675148", fontFamily: "Montserrat_400Regular" }}
@@ -246,7 +238,7 @@ export default function SignIn() {
         onPress={handleSignIn}
         disabled={loading}
       >
-        {loading ? (
+        {memoizedLoadingState ? (
           <ActivityIndicator color="#fff" />
         ) : (
           <Text
