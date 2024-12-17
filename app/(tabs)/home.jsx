@@ -285,13 +285,37 @@ const Home = () => {
     }
   };
 
+  const stopwords = new Set([
+    "a",
+    "an",
+    "the",
+    "is",
+    "of",
+    "on",
+    "for",
+    "and",
+    "or",
+    "to",
+    "in",
+    "at",
+    "with",
+    "by",
+    "that",
+    "this",
+    "it",
+    "what",
+    "which",
+    "i",
+    "you",
+  ]);
+
   const getKeywords = (text) => {
-    // Split the text into words, remove punctuation and convert to lowercase
     return text
       .toLowerCase()
       .replace(/[^a-z\s]/g, "") // Remove punctuation
-      .split(" ")
-      .filter((word) => word); // Remove empty strings
+      .split(" ") // Split into words
+      .filter((word) => word && !stopwords.has(word)) // Remove stopwords
+      .map((word) => word.trim()); // Remove extra spaces
   };
 
   const recommendDrinksByTemperature = () => {

@@ -13,6 +13,8 @@ const PayPalPayment = ({ amount, onClose, onSuccess }) => {
   const [loading, setLoading] = useState(true);
   const [alertVisible, setAlertVisible] = useState(false);
   const [alertMessage, setAlertMessage] = useState("");
+  const [cancelAttempts, setCancelAttempts] = useState(0); // Track cancellations
+  const [blocked, setBlocked] = useState(false); // Block payment after 3 cancellations
   const [fontsLoaded] = useFonts({
     Montserrat_400Regular,
     Montserrat_700Bold,
@@ -40,6 +42,7 @@ const PayPalPayment = ({ amount, onClose, onSuccess }) => {
   };
 
   const createPayment = async () => {
+    if (blocked) return; // Stop payment creation if blocked
     const accessToken = await getAccessToken();
     const response = await fetch(
       "https://api.sandbox.paypal.com/v1/payments/payment",
@@ -83,14 +86,25 @@ const PayPalPayment = ({ amount, onClose, onSuccess }) => {
 
   const onPaymentCancel = () => {
     console.log("Payment cancelled"); // Debug log
-    setAlertVisible(true);
-    setAlertMessage("Payment Cancelled");
+    setCancelAttempts((prev) => {
+      const newCount = prev + 1;
+      if (newCount >= 3) {
+        setBlocked(true); // Block further payments after 3 attempts
+        setAlertMessage("You have exceeded the maximum cancellation attempts.");
+      } else {
+        setAlertMessage(`Payment Cancelled. Attempts left: ${3 - newCount}`);
+      }
+      setAlertVisible(true);
+      return newCount;
+    });
     onClose();
   };
 
   React.useEffect(() => {
-    createPayment();
-  }, []);
+    if (!blocked) {
+      createPayment();
+    }
+  }, [blocked]);
 
   return (
     <View style={{ flex: 1 }}>
@@ -98,7 +112,7 @@ const PayPalPayment = ({ amount, onClose, onSuccess }) => {
         <View style={styles.loadingContainer}>
           <Text style={styles.loadingText}>PayPal Payment is Loading...</Text>
         </View>
-      ) : paymentUrl ? (
+      ) : paymentUrl && !blocked ? (
         <WebView
           style={{ flex: 1 }}
           source={{ uri: paymentUrl }}
@@ -110,7 +124,13 @@ const PayPalPayment = ({ amount, onClose, onSuccess }) => {
             }
           }}
         />
-      ) : null}
+      ) : (
+        <View style={styles.blockedContainer}>
+          <Text style={styles.blockedText}>
+            You can no longer proceed with the payment.
+          </Text>
+        </View>
+      )}
       <CustomAlert
         visible={alertVisible}
         message={alertMessage}
@@ -131,6 +151,19 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontFamily: "Montserrat_700Bold",
     color: "#4f3830",
+  },
+  blockedContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#f8d7da",
+  },
+  blockedText: {
+    fontSize: 18,
+    fontFamily: "Montserrat_700Bold",
+    color: "#721c24",
+    textAlign: "center",
+    paddingHorizontal: 20,
   },
 });
 
