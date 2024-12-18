@@ -29,6 +29,7 @@ import {
   doc,
   getDoc,
   onSnapshot,
+  updateDoc,
 } from "firebase/firestore"; // Import necessary Firestore functions
 import { getAuth } from "firebase/auth";
 import { Ionicons } from "@expo/vector-icons";
@@ -89,6 +90,9 @@ const Order = () => {
   const [hasOrders, setHasOrders] = useState(false);
   const [pickupTime, setPickupTime] = useState("");
   const [orderId, setOrderId] = useState("");
+  const [cancelAttempts, setCancelAttempts] = useState(0); // Track cancellations
+  const [timeoutTimestamp, setTimeoutTimestamp] = useState(null); // Store timeout expiry
+  const [timeRemaining, setTimeRemaining] = useState(0);
 
   const pickupTimeOptions = [
     { label: "11:00 AM", value: "11:00 AM" },
@@ -128,6 +132,7 @@ const Order = () => {
     setOrderItems(parsedItems);
     setIsModalVisible(true);
   }, [parsedItems]);
+
   useEffect(() => {
     if (isModalVisible) {
       // Focus on the TextInput when the modal opens
@@ -176,7 +181,39 @@ const Order = () => {
 
       return () => unsubscribe(); // Cleanup listener on unmount
     }
-  }, [confirmed]); // Only run this effect if the order is confirmed
+  }, [confirmed]);
+
+  useEffect(() => {
+    if (timeoutTimestamp) {
+      const timer = setInterval(() => {
+        const remaining = Math.max(0, timeoutTimestamp - Date.now());
+        setTimeRemaining(remaining);
+
+        if (remaining <= 0) {
+          setTimeoutTimestamp(null); // Unblock after timeout
+          setCancelAttempts(0); // Reset cancel attempts
+          clearInterval(timer);
+
+          // Update Firestore to set the user as not locked out
+          const auth = getAuth();
+          const user = auth.currentUser;
+
+          if (user) {
+            const userDocRef = doc(db, "customer", user.uid);
+            updateDoc(userDocRef, { isLockedOut: false })
+              .then(() => {
+                console.log("User  is no longer locked out.");
+              })
+              .catch((error) => {
+                console.error("Error updating lockout status:", error);
+              });
+          }
+        }
+      }, 1000);
+
+      return () => clearInterval(timer); // Cleanup timer on unmount
+    }
+  }, [timeoutTimestamp]); // Only run this effect if the order is confirmed// Only run this effect if the order is confirmed
 
   const renderSelectedItem = ({ item }) => {
     if (!item || !item.name) {
@@ -223,6 +260,19 @@ const Order = () => {
   };
 
   const handleConfirmPayment = () => {
+    if (timeoutTimestamp && timeRemaining > 0) {
+      Toast.show({
+        type: "error",
+        text1: "Checkout Blocked",
+        text2: `You can try again in ${Math.floor(
+          timeRemaining / 60000
+        )}:${Math.floor((timeRemaining % 60000) / 1000)
+          .toString()
+          .padStart(2, "0")}`,
+      });
+      return;
+    }
+
     if (!pickupTime) {
       Toast.show({
         type: "error",
@@ -231,6 +281,7 @@ const Order = () => {
       });
       return;
     }
+
     setIsModalVisible(false);
     setIsPayPalVisible(true); // Show PayPal payment component
   };
@@ -296,12 +347,36 @@ const Order = () => {
   };
 
   const handleCancelOrder = () => {
-    setIsModalVisible(true);
+    setCancelAttempts((prev) => {
+      const newCount = prev + 1;
+      if (newCount >= 3) {
+        const timeoutEnd = Date.now() + 10 * 60 * 1000; // 10-minute timeout
+        setTimeoutTimestamp(timeoutEnd);
+        // Update Firestore to set the user as locked out
+        const auth = getAuth();
+        const user = auth.currentUser;
+        if (user) {
+          const userDocRef = doc(db, "customer", user.uid);
+          updateDoc(userDocRef, { isLockedOut: true });
+        }
+      }
+      return newCount;
+    });
+
+    setIsModalVisible(false);
     setOrderInProgress(false);
     setOrderItems([]);
     setConfirmed(false);
-    setIsPayPalVisible(false); // Hide PayPal payment component
+    setIsPayPalVisible(false);
+    setSpecialRemarks("");
+    setPickupTime(""); // Reset any pickup time selection
     router.replace("order", { selectedItems: "[]", totalPrice: "0" });
+  };
+
+  const formatTime = (milliseconds) => {
+    const minutes = Math.floor(milliseconds / 60000);
+    const seconds = Math.floor((milliseconds % 60000) / 1000);
+    return `${minutes}:${seconds < 10 ? "0" : ""}${seconds}`;
   };
 
   const handleOrderDone = async () => {
@@ -345,6 +420,13 @@ const Order = () => {
   };
   return (
     <SafeAreaView style={styles.container}>
+      {timeoutTimestamp && timeRemaining > 0 && (
+        <View style={styles.blockedMessageContainer}>
+          <Text style={styles.blockedMessageText}>
+            You cannot check out for another {formatTime(timeRemaining)}.
+          </Text>
+        </View>
+      )}
       {!orderInProgress ? (
         <View style={styles.noOrderContainer}>
           <Text style={styles.noOrderMessage}>
@@ -690,6 +772,18 @@ const styles = StyleSheet.create({
     fontFamily: "Montserrat_700Bold",
     marginBottom: 10,
     color: "#4f3830",
+  },
+  blockedMessageContainer: {
+    backgroundColor: "#4f3830",
+    padding: 15,
+    marginBottom: 10,
+    borderRadius: 5,
+  },
+  blockedMessageText: {
+    color: "#fff",
+    fontSize: 16,
+    fontFamily: "Montserrat_700Bold",
+    textAlign: "center",
   },
 });
 

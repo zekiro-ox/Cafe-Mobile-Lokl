@@ -214,6 +214,57 @@ const SearchBar = ({
       </View>
     );
   };
+  const checkoutHandler = async () => {
+    console.log("User Profile:", userProfile); // Debugging line
+    console.log("Is Locked Out:", userProfile?.isLockedOut);
+    if (userProfile?.isLockedOut) {
+      Alert.alert(
+        "Checkout Not Allowed",
+        "You are currently locked out. Please try again later.",
+        [{ text: "OK" }]
+      );
+      return; // Prevent proceeding to checkout
+    }
+
+    const hasExistingOrders = await checkExistingOrders();
+
+    if (hasExistingOrders) {
+      Alert.alert(
+        "Checkout Not Allowed",
+        "You have existing orders. Please wait for the process to be completed",
+        [{ text: "OK" }]
+      );
+      return; // Prevent proceeding to checkout
+    }
+
+    const selectedItems = cartItems.filter((item) =>
+      selectedCartItems.includes(item.id)
+    );
+
+    const serializedItems = selectedItems.map((item) => ({
+      id: item.id,
+      name: item.name,
+      totalPrice: item.totalPrice.toFixed(2),
+      quantity: item.quantity,
+      image: item.image,
+      ingredients: item.ingredients.map((ingredient) => ({
+        name: ingredient.name,
+        quantity: ingredient.quantity,
+        price: ingredient.price,
+      })),
+    }));
+    console.log("Serialized Items:", serializedItems);
+
+    router.push({
+      pathname: "order",
+      params: {
+        selectedItems: JSON.stringify(serializedItems),
+        totalPrice: totalPrice.toFixed(2),
+      },
+    });
+    setCartItems([]);
+    toggleModal();
+  };
   return (
     <View style={styles.container}>
       <View style={styles.searchBarContainer}>
@@ -301,45 +352,7 @@ const SearchBar = ({
             </Text>
             <TouchableOpacity
               style={styles.checkoutButton}
-              onPress={async () => {
-                const hasExistingOrders = await checkExistingOrders();
-
-                if (hasExistingOrders) {
-                  Alert.alert(
-                    "Checkout Not Allowed",
-                    "You have existing orders. Please wait for the process to be completed",
-                    [{ text: "OK" }]
-                  );
-                  return; // Prevent proceeding to checkout
-                }
-                const selectedItems = cartItems.filter((item) =>
-                  selectedCartItems.includes(item.id)
-                );
-
-                const serializedItems = selectedItems.map((item) => ({
-                  id: item.id,
-                  name: item.name,
-                  totalPrice: item.totalPrice.toFixed(2),
-                  quantity: item.quantity,
-                  image: item.image,
-                  ingredients: item.ingredients.map((ingredient) => ({
-                    name: ingredient.name,
-                    quantity: ingredient.quantity,
-                    price: ingredient.price,
-                  })),
-                }));
-                console.log("Serialized Items:", serializedItems);
-
-                router.push({
-                  pathname: "order",
-                  params: {
-                    selectedItems: JSON.stringify(serializedItems),
-                    totalPrice: totalPrice.toFixed(2),
-                  },
-                });
-
-                toggleModal();
-              }}
+              onPress={checkoutHandler} // Use the checkoutHandler function here
             >
               <Text style={styles.checkoutButtonText}>Checkout</Text>
             </TouchableOpacity>

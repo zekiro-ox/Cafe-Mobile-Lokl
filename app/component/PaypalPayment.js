@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { View, Text, StyleSheet, Alert } from "react-native";
+import React, { useState, useEffect } from "react";
+import { View, Text, StyleSheet } from "react-native";
 import { WebView } from "react-native-webview";
 import {
   useFonts,
@@ -15,6 +15,8 @@ const PayPalPayment = ({ amount, onClose, onSuccess }) => {
   const [alertMessage, setAlertMessage] = useState("");
   const [cancelAttempts, setCancelAttempts] = useState(0); // Track cancellations
   const [blocked, setBlocked] = useState(false); // Block payment after 3 cancellations
+  const [timeoutTimestamp, setTimeoutTimestamp] = useState(null); // Store timeout expiry
+  const [timeRemaining, setTimeRemaining] = useState(0); // Countdown timer
   const [fontsLoaded] = useFonts({
     Montserrat_400Regular,
     Montserrat_700Bold,
@@ -78,33 +80,56 @@ const PayPalPayment = ({ amount, onClose, onSuccess }) => {
   };
 
   const onPaymentSuccess = () => {
-    console.log("Payment successful"); // Debug log
     setAlertVisible(true);
     setAlertMessage("Payment Successful!");
+    setCancelAttempts(0); // Reset attempts after success
     onSuccess();
   };
 
   const onPaymentCancel = () => {
-    console.log("Payment cancelled"); // Debug log
-    setCancelAttempts((prev) => {
-      const newCount = prev + 1;
-      if (newCount >= 3) {
-        setBlocked(true); // Block further payments after 3 attempts
-        setAlertMessage("You have exceeded the maximum cancellation attempts.");
-      } else {
-        setAlertMessage(`Payment Cancelled. Attempts left: ${3 - newCount}`);
-      }
-      setAlertVisible(true);
-      return newCount;
-    });
+    const newCount = cancelAttempts + 1;
+    setCancelAttempts(newCount);
+
+    if (newCount >= 3) {
+      const timeoutEnd = Date.now() + 10 * 60 * 1000; // Set 10-minute timeout
+      setTimeoutTimestamp(timeoutEnd);
+      setBlocked(true);
+      setAlertMessage(
+        "You are blocked for 10 minutes due to too many cancellations."
+      );
+    } else {
+      setAlertMessage(`Payment Cancelled. Attempts left: ${3 - newCount}`);
+    }
+
+    setAlertVisible(true);
     onClose();
   };
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (!blocked) {
       createPayment();
+    } else if (timeoutTimestamp) {
+      const timer = setInterval(() => {
+        const remaining = Math.max(0, timeoutTimestamp - Date.now());
+        setTimeRemaining(remaining);
+
+        if (remaining <= 0) {
+          setBlocked(false); // Unblock after timeout
+          setCancelAttempts(0);
+          setTimeoutTimestamp(null);
+          clearInterval(timer);
+        }
+      }, 1000);
+
+      return () => clearInterval(timer); // Cleanup on unmount
     }
-  }, [blocked]);
+  }, [blocked, timeoutTimestamp]);
+
+  const formatTime = (milliseconds) => {
+    const minutes = Math.floor(milliseconds / 60000);
+    const seconds = Math.floor((milliseconds % 60000) / 1000);
+    return `${minutes}:${seconds < 10 ? "0" : ""}${seconds}`;
+  };
 
   return (
     <View style={{ flex: 1 }}>
@@ -127,7 +152,9 @@ const PayPalPayment = ({ amount, onClose, onSuccess }) => {
       ) : (
         <View style={styles.blockedContainer}>
           <Text style={styles.blockedText}>
-            You can no longer proceed with the payment.
+            {timeoutTimestamp
+              ? `You can retry in ${formatTime(timeRemaining)}`
+              : "You can no longer proceed with the payment."}
           </Text>
         </View>
       )}

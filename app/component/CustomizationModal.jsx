@@ -19,6 +19,16 @@ import {
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useRouter } from "expo-router";
+import { getAuth } from "firebase/auth";
+import {
+  doc,
+  getDoc,
+  query,
+  collection,
+  where,
+  getDocs,
+} from "firebase/firestore";
+import { db } from "../config/firebase";
 
 const { height: screenHeight } = Dimensions.get("window");
 
@@ -121,7 +131,30 @@ const CustomizationModal = ({
     onClose();
   };
 
-  const handleOrderNow = () => {
+  const handleOrderNow = async () => {
+    // Check if the user is locked out
+    const auth = getAuth();
+    const user = auth.currentUser;
+
+    if (user) {
+      const userId = user.uid;
+      const userDocRef = doc(db, "customer", userId);
+      const userDoc = await getDoc(userDocRef);
+
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+        if (userData.isLockedOut) {
+          // Show alert if the user is locked out
+          Alert.alert(
+            "Order Not Allowed",
+            "You are currently locked out. Please try again later.",
+            [{ text: "OK" }]
+          );
+          return; // Prevent proceeding to order
+        }
+      }
+    }
+
     const totalPrice = calculateTotalPrice();
     const ingredientsToAdd = Object.entries(
       customization.selectedIngredients
@@ -151,7 +184,6 @@ const CustomizationModal = ({
     });
     onClose(); // Close the modal after ordering
   };
-
   const updateIngredientQuantity = (ingredientName, increment) => {
     setCustomization((prev) => {
       const currentIngredient = prev.selectedIngredients[ingredientName] || {
